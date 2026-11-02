@@ -1,196 +1,196 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мой Мини Апп</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Press Start 2P', cursive;
-            background-color: #1a1a1a;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            text-align: center;
-            max-width: 400px;
-        }
-
-        h1 {
-            font-size: 16px;
-            color: #ff8c00;
-            margin-bottom: 40px;
-            line-height: 1.6;
-            text-shadow: 3px 3px 0px #000000;
-        }
-
-        .greeting {
-            font-size: 12px;
-            color: #ffd700;
-            margin-bottom: 30px;
-        }
-
-        .button-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .pixel-button {
-            font-family: 'Press Start 2P', cursive;
-            font-size: 14px;
-            padding: 15px 30px;
-            border: 4px solid #000000;
-            cursor: pointer;
-            text-transform: uppercase;
-            position: relative;
-            box-shadow: 4px 4px 0px #000000;
-            transition: all 0.1s;
-        }
-
-        .pixel-button:active {
-            transform: translate(4px, 4px);
-            box-shadow: 0px 0px 0px #000000;
-        }
-
-        .btn-salute {
-            background-color: #ff8c00;
-            color: #ffffff;
-        }
-
-        .btn-salute:hover {
-            background-color: #ffa500;
-        }
-
-        .btn-start {
-            background-color: #4169e1;
-            color: #ffffff;
-        }
-
-        .btn-start:hover {
-            background-color: #5a7ff0;
-        }
-
-        .pixel-decoration {
-            margin-top: 40px;
-            font-size: 10px;
-            color: #808080;
-        }
-
-        /* Анимация для салюта */
-        .firework {
-            position: fixed;
-            width: 4px;
-            height: 4px;
-            background-color: #ff8c00;
-            pointer-events: none;
-            animation: explode 1s ease-out forwards;
-        }
-
-        @keyframes explode {
-            0% {
-                transform: translate(0, 0);
-                opacity: 1;
-            }
-            100% {
-                transform: translate(var(--tx), var(--ty));
-                opacity: 0;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#05070f">
+  <title>Mini Arcade</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>ДОБРО ПОЖАЛОВАТЬ В МОЙ МИНИ АПП</h1>
-        <div class="greeting" id="greeting">Загрузка...</div>
-        
-        <div class="button-container">
-            <button class="pixel-button btn-salute" onclick="salute()">САЛЮТ</button>
-            <button class="pixel-button btn-start" onclick="start()">СТАРТ</button>
-        </div>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-play" viewBox="0 0 24 24">
+      <path d="M8 5.5v13a1 1 0 0 0 1.53.85l10.2-6.5a1 1 0 0 0 0-1.7L9.53 4.65A1 1 0 0 0 8 5.5Z" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-friends" viewBox="0 0 24 24">
+      <circle cx="9" cy="8" r="3.2"/>
+      <path d="M3.5 19c.5-3.3 2.7-5.2 5.5-5.2s5 1.9 5.5 5.2"/>
+      <circle cx="17" cy="9.5" r="2.4"/>
+      <path d="M16 13.6c2.4.1 4 1.8 4.5 4.4"/>
+    </symbol>
+    <symbol id="i-shop" viewBox="0 0 24 24">
+      <path d="M5 8h14l-1.1 11.2a1 1 0 0 1-1 .8H7.1a1 1 0 0 1-1-.8L5 8Z"/>
+      <path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>
+    </symbol>
+    <symbol id="i-news" viewBox="0 0 24 24">
+      <path d="M5 5h11a2 2 0 0 1 2 2v12H7a2 2 0 0 1-2-2V5Z"/>
+      <path d="M18 9h1a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2"/>
+      <path d="M8.5 9h5M8.5 12.5h5M8.5 16h3"/>
+    </symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24">
+      <path d="m9 5 7 7-7 7"/>
+    </symbol>
+    <symbol id="i-back" viewBox="0 0 24 24">
+      <path d="m15 5-7 7 7 7"/>
+    </symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24">
+      <path d="M4 10h16v10H4zM3 6.5h18V10H3zM12 6.5V20"/>
+      <path d="M12 6.5C12 4 10.5 3 9.2 3 8 3 7.2 3.9 7.2 5c0 1 .8 1.5 1.7 1.5H12Zm0 0c0-2.5 1.5-3.5 2.8-3.5 1.2 0 2 .9 2 2 0 1-.8 1.5-1.7 1.5H12Z"/>
+    </symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24">
+      <path d="M12 3.5 13.9 9l5.6 2-5.6 2-1.9 5.5L10.1 13 4.5 11l5.6-2 1.9-5.5Z" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-share" viewBox="0 0 24 24">
+      <circle cx="18" cy="5.5" r="2.6"/>
+      <circle cx="6" cy="12" r="2.6"/>
+      <circle cx="18" cy="18.5" r="2.6"/>
+      <path d="m8.4 10.7 7.2-4M8.4 13.3l7.2 4"/>
+    </symbol>
+  </svg>
 
-        <div class="pixel-decoration">
-            ★ 8-BIT STYLE ★
-        </div>
+  <div id="app">
+    <div class="bg" aria-hidden="true">
+      <div class="orb orb-a"></div>
+      <div class="orb orb-b"></div>
+      <div class="orb orb-c"></div>
+      <div class="grid"></div>
+      <div class="wordmark">ARCADE</div>
     </div>
 
-    <script>
-        // Инициализация Telegram Web App
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+    <div class="user-chip" id="userChip" hidden>
+      <div class="user-avatar" id="userAvatar">?</div>
+      <div class="user-meta">
+        <div class="user-name" id="userName">Гость</div>
+        <div class="user-handle" id="userHandle">не в Telegram</div>
+      </div>
+    </div>
 
-        // Получение имени пользователя
-        const user = tg.initDataUnsafe.user;
-        const greetingElement = document.getElementById('greeting');
-        
-        if (user) {
-            const firstName = user.first_name || 'Друг';
-            greetingElement.textContent = `Привет, ${firstName}!`;
-        } else {
-            greetingElement.textContent = 'Привет, Друг!';
-        }
+    <section class="screen screen--menu is-active" data-screen="menu">
+      <nav class="menu" aria-label="Главное меню">
+        <button class="menu-btn menu-btn--play" data-nav="play" style="--i:0">
+          <span class="menu-icon"><svg><use href="#i-play"/></svg></span>
+          <span class="menu-label">Играть</span>
+          <span class="menu-arrow"><svg><use href="#i-arrow"/></svg></span>
+        </button>
+        <button class="menu-btn" data-nav="friends" style="--i:1">
+          <span class="menu-icon"><svg><use href="#i-friends"/></svg></span>
+          <span class="menu-label">Друзья</span>
+          <span class="menu-arrow"><svg><use href="#i-arrow"/></svg></span>
+        </button>
+        <button class="menu-btn" data-nav="shop" style="--i:2">
+          <span class="menu-icon"><svg><use href="#i-shop"/></svg></span>
+          <span class="menu-label">Магазин</span>
+          <span class="menu-arrow"><svg><use href="#i-arrow"/></svg></span>
+        </button>
+        <button class="menu-btn" data-nav="news" style="--i:3">
+          <span class="menu-icon"><svg><use href="#i-news"/></svg></span>
+          <span class="menu-label">Новости</span>
+          <span class="menu-arrow"><svg><use href="#i-arrow"/></svg></span>
+        </button>
+      </nav>
 
-        // Функция салюта
-        function salute() {
-            const colors = ['#ff8c00', '#ffd700', '#ff4500', '#ffffff'];
-            
-            for (let i = 0; i < 20; i++) {
-                setTimeout(() => {
-                    const firework = document.createElement('div');
-                    firework.className = 'firework';
-                    firework.style.left = '50%';
-                    firework.style.top = '50%';
-                    firework.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                    
-                    const angle = (Math.PI * 2 * i) / 20;
-                    const distance = 100 + Math.random() * 100;
-                    const tx = Math.cos(angle) * distance;
-                    const ty = Math.sin(angle) * distance;
-                    
-                    firework.style.setProperty('--tx', `${tx}px`);
-                    firework.style.setProperty('--ty', `${ty}px`);
-                    
-                    document.body.appendChild(firework);
-                    
-                    setTimeout(() => firework.remove(), 1000);
-                }, i * 50);
-            }
+      <footer class="menu-foot">
+        <span class="dot"></span>
+        <span id="platformLabel">Mini App</span>
+        <span class="sep">/</span>
+        <span>v0.1.0</span>
+      </footer>
+    </section>
 
-            // Вибрация на мобильных
-            if (navigator.vibrate) {
-                navigator.vibrate(100);
-            }
-        }
+    <section class="screen screen--section" data-screen="play">
+      <header class="screen-head">
+        <button class="back-btn" data-back aria-label="Назад"><svg><use href="#i-back"/></svg></button>
+        <h1 class="screen-title">Игра</h1>
+      </header>
+      <div class="screen-body">
+        <div class="card card--hero">
+          <span class="badge">скоро</span>
+          <h2>Игра в разработке</h2>
+          <p>Механика и жанр скоро появятся здесь. Меню уже готово, экран игры подключим следующим шагом.</p>
+          <div class="pulse-orb"><svg><use href="#i-play"/></svg></div>
+        </div>
+      </div>
+    </section>
 
-        // Функция старт
-        function start() {
-            alert('ИГРА НАЧАЛАСЬ! 🎮');
-            
-            // Отправка данных боту
-            tg.sendData('start_game');
-        }
+    <section class="screen screen--section" data-screen="friends">
+      <header class="screen-head">
+        <button class="back-btn" data-back aria-label="Назад"><svg><use href="#i-back"/></svg></button>
+        <h1 class="screen-title">Друзья</h1>
+      </header>
+      <div class="screen-body">
+        <div class="card card--invite">
+          <div class="card-icon card-icon--violet"><svg><use href="#i-friends"/></svg></div>
+          <h2>Играйте вместе</h2>
+          <p>Пригласите друзей в Mini App и соревнуйтесь в рекордах.</p>
+          <button class="action-btn" id="inviteBtn"><svg><use href="#i-share"/></svg>Пригласить друзей</button>
+        </div>
+        <div class="list-head">Список друзей</div>
+        <div class="empty-state">
+          <div class="empty-icon"><svg><use href="#i-friends"/></svg></div>
+          <p>Пока пусто. Друзья появятся после запуска игры.</p>
+        </div>
+      </div>
+    </section>
 
-        // Установка цветов темы Telegram
-        if (tg.colorScheme === 'dark') {
-            document.body.style.backgroundColor = '#1a1a1a';
-        } else {
-            document.body.style.backgroundColor = '#f0f0f0';
-            document.body.style.color = '#1a1a1a';
-        }
-    </script>
+    <section class="screen screen--section" data-screen="shop">
+      <header class="screen-head">
+        <button class="back-btn" data-back aria-label="Назад"><svg><use href="#i-back"/></svg></button>
+        <h1 class="screen-title">Магазин</h1>
+        <div class="balance"><svg><use href="#i-spark"/></svg><span>0</span></div>
+      </header>
+      <div class="screen-body">
+        <div class="list-head">Товары</div>
+        <div class="shop-grid">
+          <article class="shop-item">
+            <div class="shop-art shop-art--violet"><svg><use href="#i-spark"/></svg></div>
+            <h3>Неоновый скин</h3>
+            <div class="price"><svg><use href="#i-spark"/></svg>500</div>
+            <button class="buy-btn" disabled>Скоро</button>
+          </article>
+          <article class="shop-item">
+            <div class="shop-art shop-art--cyan"><svg><use href="#i-play"/></svg></div>
+            <h3>Буст ×2</h3>
+            <div class="price"><svg><use href="#i-spark"/></svg>300</div>
+            <button class="buy-btn" disabled>Скоро</button>
+          </article>
+          <article class="shop-item">
+            <div class="shop-art shop-art--pink"><svg><use href="#i-gift"/></svg></div>
+            <h3>Рамка профиля</h3>
+            <div class="price"><svg><use href="#i-spark"/></svg>800</div>
+            <button class="buy-btn" disabled>Скоро</button>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen screen--section" data-screen="news">
+      <header class="screen-head">
+        <button class="back-btn" data-back aria-label="Назад"><svg><use href="#i-back"/></svg></button>
+        <h1 class="screen-title">Новости</h1>
+      </header>
+      <div class="screen-body">
+        <article class="news-card">
+          <div class="news-top"><span class="tag tag--new">новое</span><time>02.11.2026</time></div>
+          <h3>Главное меню готово</h3>
+          <p>Запустили базовую навигацию Mini App: игра, друзья, магазин и новости.</p>
+        </article>
+        <article class="news-card">
+          <div class="news-top"><span class="tag">анонс</span><time>01.11.2026</time></div>
+          <h3>Скоро первая игра</h3>
+          <p>Готовим игровой режим. Следите за обновлениями в этом разделе.</p>
+        </article>
+        <article class="news-card">
+          <div class="news-top"><span class="tag">гайд</span><time>31.10.2026</time></div>
+          <h3>Как запустить Mini App</h3>
+          <p>Откройте бота, нажмите кнопку меню — и приложение откроется прямо в Telegram.</p>
+        </article>
+      </div>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <script src="telegram-web-app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
