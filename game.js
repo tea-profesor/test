@@ -609,7 +609,7 @@
         enemy.bodyMaterial.emissiveIntensity -= dt * 6;
         enemy.headMaterial.emissiveIntensity -= dt * 5;
       }
-      if (enemy.bodyMaterial.emissiveIntensity < 0.6) {
+      if (enemy.bodyMaterial.emissiveIntensity <= 0.6) {
         enemy.bodyMaterial.emissiveIntensity = 0.6;
         enemy.bodyMaterial.emissive.setHex(0x3a0a0a);
         enemy.headMaterial.emissiveIntensity = 0.5;
