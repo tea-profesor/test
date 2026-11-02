@@ -52,6 +52,9 @@
   var weaponBase = null;
   var swordGroup = null;
   var bowGroup = null;
+  var weaponBladeMaterial = null;
+  var weaponBowMaterial = null;
+  var weaponStringMaterial = null;
   var enemies = [];
   var effects = [];
   var arrows = [];
@@ -335,6 +338,10 @@
 
     var woodMaterial = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.85 });
     var stringMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.65 });
+
+    weaponBladeMaterial = bladeMaterial;
+    weaponBowMaterial = woodMaterial;
+    weaponStringMaterial = stringMaterial;
 
     var bowArc = -Math.PI * 0.55;
     var bowSpan = Math.PI * 1.1;
@@ -635,6 +642,18 @@
     state.bowEquipped = Boolean(bow);
     if (swordGroup) swordGroup.visible = !state.bowEquipped;
     if (bowGroup) bowGroup.visible = state.bowEquipped;
+
+    if (window.GameStore) {
+      var skinId = snapshot ? snapshot.skin : window.GameStore.get().skin;
+      var skin = window.GameStore.getSkin(skinId);
+      if (weaponBladeMaterial) {
+        weaponBladeMaterial.color.setHex(skin.accent);
+        weaponBladeMaterial.emissive.setHex(skin.primary);
+      }
+      if (weaponBowMaterial) weaponBowMaterial.color.setHex(skin.primary);
+      if (weaponStringMaterial) weaponStringMaterial.color.setHex(skin.accent);
+      if (stage) stage.style.setProperty("--skin-accent", skin.css[0]);
+    }
   }
 
   function removeArrow(index) {
@@ -844,7 +863,8 @@
     if (!state.running) return;
     var dt = Math.min((now - state.last) / 1000, 0.05);
     state.last = now;
-    update(dt);
+    if (!(lobby && !lobby.hidden)) update(dt);
+    updateNetwork(dt);
     renderer.render(scene, camera);
     state.raf = window.requestAnimationFrame(loop);
   }
@@ -874,10 +894,643 @@
     if (knob) knob.style.transform = "translate(0px, 0px)";
   }
 
+  var NET_URL = "wss://broker.hivemq.com:8884/mqtt";
+  var NET_TOPIC = "miniarcade/v1/room/";
+  var NET_MAX = 5;
+  var NET_STALE = 6000;
+  var NET_SEND_MS = 120;
+  var NET_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  var NET_ID_KEY = "mini_arcade_net_id";
+
+  var netBtn = document.getElementById("netBtn");
+  var netLabel = document.getElementById("netLabel");
+  var lobby = document.getElementById("lobby");
+  var lobbyClose = document.getElementById("lobbyClose");
+  var lobbySetup = document.getElementById("lobbySetup");
+  var lobbyRoom = document.getElementById("lobbyRoom");
+  var roomCode = document.getElementById("roomCode");
+  var roomCount = document.getElementById("roomCount");
+  var roomPlayers = document.getElementById("roomPlayers");
+  var lobbyStatus = document.getElementById("lobbyStatus");
+  var roomInput = document.getElementById("roomInput");
+  var createRoomBtn = document.getElementById("createRoomBtn");
+  var joinRoomBtn = document.getElementById("joinRoomBtn");
+  var copyCodeBtn = document.getElementById("copyCodeBtn");
+  var leaveRoomBtn = document.getElementById("leaveRoomBtn");
+
+  var net = {
+    client: null,
+    room: "",
+    status: "offline",
+    connected: false,
+    id: netIdentity(),
+    name: "Игрок",
+    skin: "scout",
+    remote: {},
+    sendAcc: 0
+  };
+
+  function netIdentity() {
+    try {
+      var saved = localStorage.getItem(NET_ID_KEY);
+      if (saved) return saved;
+    } catch (error) {}
+    var id = "p" + Math.random().toString(36).slice(2, 10);
+    try {
+      localStorage.setItem(NET_ID_KEY, id);
+    } catch (error) {}
+    return id;
+  }
+
+  function netPlayerName() {
+    var user = tg && tg.initDataUnsafe ? tg.initDataUnsafe.user : null;
+    var name = user && (user.first_name || user.username);
+    return String(name || "Игрок").trim().slice(0, 16) || "Игрок";
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function netSkinId(id) {
+    return window.GameStore ? window.GameStore.getSkin(id).id : "scout";
+  }
+
+  function netSetStatus(text, isError) {
+    net.statusText = text;
+    if (!lobbyStatus) return;
+    lobbyStatus.textContent = text;
+    lobbyStatus.classList.toggle("is-error", Boolean(isError));
+  }
+
+  function netUpdateUi() {
+    if (netLabel) {
+      netLabel.textContent = net.room ? "Комната " + net.room : "Сеть";
+    }
+    if (netBtn) {
+      netBtn.classList.toggle("is-online", net.status === "online");
+    }
+    if (!lobby) return;
+
+    if (lobbySetup) lobbySetup.hidden = Boolean(net.room);
+    if (lobbyRoom) lobbyRoom.hidden = !net.room;
+    if (roomCode) roomCode.textContent = net.room || "—";
+
+    if (net.room) {
+      var count = 1 + Object.keys(net.remote).length;
+      if (roomCount) roomCount.textContent = count + "/" + NET_MAX;
+      netRenderPlayers();
+    }
+
+    if (net.status === "offline" && !net.room && !net.statusText) {
+      netSetStatus("Создайте комнату или введите код");
+    }
+  }
+
+  function netRenderPlayers() {
+    if (!roomPlayers) return;
+    var rows = [{ id: net.id, name: net.name, skin: net.skin, self: true }];
+
+    Object.keys(net.remote).forEach(function (id) {
+      var remote = net.remote[id];
+      rows.push({ id: id, name: remote.name, skin: remote.skin, self: false });
+    });
+
+    roomPlayers.innerHTML = rows
+      .map(function (row) {
+        var skin = window.GameStore ? window.GameStore.getSkin(row.skin) : null;
+        var color = skin ? skin.css[0] : "#3ee08f";
+        return (
+          '<div class="room-player' +
+          (row.self ? " is-self" : "") +
+          '">' +
+          '<span class="swatch" style="background:' +
+          color +
+          '"></span>' +
+          '<span>' +
+          escapeHtml(row.name) +
+          "</span>" +
+          '<span class="tag badge">' +
+          (row.self ? "ВЫ" : "ОНЛАЙН") +
+          "</span></div>"
+        );
+      })
+      .join("");
+  }
+
+  function makeRoomCode() {
+    var code = "";
+    for (var i = 0; i < 5; i += 1) {
+      code += NET_ALPHABET[Math.floor(Math.random() * NET_ALPHABET.length)];
+    }
+    return code;
+  }
+
+  function openLobby() {
+    if (!lobby) return;
+    lobby.hidden = false;
+    net.name = netPlayerName();
+    if (window.GameStore) net.skin = window.GameStore.get().skin;
+    netUpdateUi();
+    if (net.status === "offline") {
+      netSetStatus("Создайте комнату или введите код");
+    } else if (net.status === "online") {
+      netSetStatus("Вы в комнате");
+    }
+  }
+
+  function closeLobby() {
+    if (lobby) lobby.hidden = true;
+  }
+
+  function netOnMessage(payload) {
+    var msg;
+    try {
+      msg = JSON.parse(String(payload));
+    } catch (error) {
+      return;
+    }
+
+    if (!msg || typeof msg.id !== "string" || msg.id === net.id) return;
+    var now = Date.now();
+
+    if (msg.leave) {
+      netRemoveRemote(msg.id);
+      return;
+    }
+
+    if (
+      typeof msg.x !== "number" ||
+      typeof msg.z !== "number" ||
+      typeof msg.yaw !== "number"
+    ) {
+      return;
+    }
+
+    var known = net.remote[msg.id];
+    if (!known && Object.keys(net.remote).length >= NET_MAX - 1) return;
+
+    var skin = netSkinId(msg.skin);
+    var name = String(msg.name || "Игрок").slice(0, 16);
+    var x = clamp(msg.x, -64, 64);
+    var z = clamp(msg.z, -64, 64);
+    var y = clamp(Number(msg.y) || 1.72, 0, 6);
+    var yaw = Number(msg.yaw) || 0;
+
+    if (known) {
+      known.x = x;
+      known.z = z;
+      known.y = y;
+      known.yaw = yaw;
+      known.seen = now;
+      known.name = name;
+      if (known.skin !== skin) {
+        known.skin = skin;
+        netApplyAvatarSkin(known);
+      }
+      return;
+    }
+
+    if (!scene) return;
+
+    var avatar = makeRemoteAvatar(name, skin);
+    avatar.group.position.set(x, Math.max(0, y - 1.72), z);
+    avatar.group.rotation.y = yaw + Math.PI;
+    scene.add(avatar.group);
+
+    net.remote[msg.id] = {
+      id: msg.id,
+      name: name,
+      skin: skin,
+      x: x,
+      y: y,
+      z: z,
+      yaw: yaw,
+      seen: now,
+      avatar: avatar
+    };
+
+    netUpdateUi();
+  }
+
+  function makeRemoteAvatar(name, skinId) {
+    var skin = window.GameStore
+      ? window.GameStore.getSkin(skinId)
+      : { primary: 0x3ee08f, secondary: 0x0f3b26, accent: 0x43e7ff, css: ["#3ee08f", "#0f3b26", "#43e7ff"] };
+
+    var group = new THREE.Group();
+
+    var bodyMaterial = new THREE.MeshStandardMaterial({
+      color: skin.primary,
+      emissive: skin.secondary,
+      emissiveIntensity: 0.6,
+      roughness: 0.55,
+      metalness: 0.1
+    });
+    var headMaterial = new THREE.MeshStandardMaterial({
+      color: skin.accent,
+      emissive: skin.primary,
+      emissiveIntensity: 0.35,
+      roughness: 0.45
+    });
+    var visorMaterial = new THREE.MeshStandardMaterial({
+      color: 0x0b1220,
+      emissive: skin.accent,
+      emissiveIntensity: 1.5,
+      roughness: 0.2,
+      metalness: 0.4
+    });
+
+    var body = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.45, 1.05, 10), bodyMaterial);
+    body.position.y = 0.62;
+    group.add(body);
+
+    var head = new THREE.Mesh(new THREE.SphereGeometry(0.31, 14, 12), headMaterial);
+    head.position.y = 1.32;
+    group.add(head);
+
+    var visor = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.09, 0.08), visorMaterial);
+    visor.position.set(0, 1.35, 0.27);
+    group.add(visor);
+
+    var ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.45, 0.58, 28),
+      new THREE.MeshBasicMaterial({
+        color: skin.accent,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide
+      })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.04;
+    group.add(ring);
+
+    var sprite = makeNameSprite(name);
+    group.add(sprite);
+
+    return {
+      group: group,
+      bodyMaterial: bodyMaterial,
+      headMaterial: headMaterial,
+      visorMaterial: visorMaterial,
+      ring: ring,
+      sprite: sprite
+    };
+  }
+
+  function makeNameSprite(text) {
+    var canvasName = document.createElement("canvas");
+    canvasName.width = 256;
+    canvasName.height = 64;
+    var context = canvasName.getContext("2d");
+
+    context.fillStyle = "rgba(4, 10, 8, 0.55)";
+    context.fillRect(8, 12, 240, 40);
+    context.fillStyle = "#eafff4";
+    context.font = "600 28px system-ui, -apple-system, sans-serif";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(String(text).slice(0, 18), 128, 32, 230);
+
+    var texture = new THREE.CanvasTexture(canvasName);
+    texture.encoding = THREE.sRGBEncoding;
+
+    var sprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false })
+    );
+    sprite.scale.set(2.2, 0.55, 1);
+    sprite.position.y = 2.05;
+    return sprite;
+  }
+
+  function netApplyAvatarSkin(remote) {
+    if (!remote.avatar || !window.GameStore) return;
+    var skin = window.GameStore.getSkin(remote.skin);
+    remote.avatar.bodyMaterial.color.setHex(skin.primary);
+    remote.avatar.bodyMaterial.emissive.setHex(skin.secondary);
+    remote.avatar.headMaterial.color.setHex(skin.accent);
+    remote.avatar.headMaterial.emissive.setHex(skin.primary);
+    remote.avatar.visorMaterial.emissive.setHex(skin.accent);
+    remote.avatar.ring.material.color.setHex(skin.accent);
+    netRenderPlayers();
+  }
+
+  function netRemoveRemote(id) {
+    var remote = net.remote[id];
+    if (!remote) return;
+
+    if (remote.avatar) {
+      scene.remove(remote.avatar.group);
+      remote.avatar.group.traverse(function (child) {
+        if (child.isSprite) {
+          if (child.material) {
+            if (child.material.map) child.material.map.dispose();
+            child.material.dispose();
+          }
+          return;
+        }
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+      });
+    }
+
+    delete net.remote[id];
+    netUpdateUi();
+  }
+
+  function netClearRemote() {
+    Object.keys(net.remote).forEach(function (id) {
+      netRemoveRemote(id);
+    });
+  }
+
+  function netSend() {
+    if (!net.client || !net.connected || !net.room) return;
+
+    net.skin = window.GameStore ? window.GameStore.get().skin : net.skin;
+    var payload = JSON.stringify({
+      id: net.id,
+      name: net.name,
+      skin: net.skin,
+      x: Math.round(player.pos.x * 100) / 100,
+      y: Math.round(player.pos.y * 100) / 100,
+      z: Math.round(player.pos.z * 100) / 100,
+      yaw: Math.round(player.yaw * 1000) / 1000,
+      ts: Date.now()
+    });
+
+    try {
+      net.client.publish(NET_TOPIC + net.room, payload, { qos: 0 });
+    } catch (error) {}
+  }
+
+  function updateNetwork(dt) {
+    if (!net.client) return;
+
+    if (net.connected) {
+      net.sendAcc += dt * 1000;
+      if (net.sendAcc >= NET_SEND_MS) {
+        net.sendAcc = 0;
+        netSend();
+      }
+    }
+
+    var now = Date.now();
+    Object.keys(net.remote).forEach(function (id) {
+      var remote = net.remote[id];
+      if (now - remote.seen > NET_STALE) {
+        netRemoveRemote(id);
+        return;
+      }
+
+      var avatar = remote.avatar;
+      if (!avatar) return;
+
+      var k = Math.min(1, dt * 9);
+      avatar.group.position.x += (remote.x - avatar.group.position.x) * k;
+      avatar.group.position.z += (remote.z - avatar.group.position.z) * k;
+      avatar.group.position.y +=
+        (Math.max(0, remote.y - 1.72) - avatar.group.position.y) * k;
+
+      var targetYaw = remote.yaw + Math.PI;
+      var diff = Math.atan2(
+        Math.sin(targetYaw - avatar.group.rotation.y),
+        Math.cos(targetYaw - avatar.group.rotation.y)
+      );
+      avatar.group.rotation.y += diff * Math.min(1, dt * 10);
+    });
+  }
+
+  function netConnect(code) {
+    if (!window.mqtt) {
+      netSetStatus("Сетевой модуль не загрузился", true);
+      return;
+    }
+
+    netLeave(true);
+    net.room = code;
+    net.name = netPlayerName();
+    net.skin = window.GameStore ? window.GameStore.get().skin : "scout";
+    net.status = "connecting";
+    net.statusText = "";
+    net.sendAcc = 0;
+    netUpdateUi();
+    netSetStatus("Подключение…");
+
+    var client;
+    try {
+      client = window.mqtt.connect(NET_URL, {
+        clientId: net.id,
+        clean: true,
+        keepalive: 30,
+        reconnectPeriod: 2500,
+        connectTimeout: 9000,
+        protocolVersion: 4
+      });
+    } catch (error) {
+      net.status = "offline";
+      netSetStatus("Не удалось подключиться", true);
+      netUpdateUi();
+      return;
+    }
+
+    net.client = client;
+
+    client.on("connect", function () {
+      if (net.client !== client) return;
+      net.connected = true;
+      net.status = "online";
+      net.sendAcc = NET_SEND_MS;
+      netSetStatus("Вы в комнате");
+      netUpdateUi();
+      netSend();
+
+      client.subscribe(NET_TOPIC + net.room, { qos: 0 }, function (error) {
+        if (error && net.client === client) {
+          netSetStatus("Ошибка подписки на комнату", true);
+        }
+      });
+
+      setHint("Комната " + net.room + " · до " + NET_MAX + " игроков");
+    });
+
+    client.on("message", function (topic, payload) {
+      if (net.client !== client) return;
+      netOnMessage(payload);
+    });
+
+    client.on("close", function () {
+      if (net.client !== client || net.status === "offline") return;
+      net.connected = false;
+      net.status = "connecting";
+      netSetStatus("Переподключение…");
+      netUpdateUi();
+    });
+
+    client.on("error", function () {
+      if (net.client !== client || net.status === "offline") return;
+      net.connected = false;
+      net.status = "connecting";
+      netSetStatus("Сеть недоступна, пробуем снова…", true);
+      netUpdateUi();
+    });
+  }
+
+  function netLeave(quiet) {
+    var client = net.client;
+    var room = net.room;
+
+    if (client) {
+      try {
+        if (client.connected && room) {
+          client.publish(
+            NET_TOPIC + room,
+            JSON.stringify({ id: net.id, leave: true, ts: Date.now() }),
+            { qos: 0 }
+          );
+        }
+      } catch (error) {}
+
+      window.setTimeout(function () {
+        try {
+          client.end(true);
+        } catch (error) {}
+      }, 120);
+    }
+
+    net.client = null;
+    net.connected = false;
+    net.room = "";
+    net.status = "offline";
+    net.statusText = "";
+    net.sendAcc = 0;
+    netClearRemote();
+    netUpdateUi();
+
+    if (!quiet) {
+      netSetStatus("Вы вышли из сети");
+      setHint("Сеть отключена");
+    }
+  }
+
+  function copyRoomCode() {
+    if (!net.room) return;
+    var value = net.room;
+
+    function done() {
+      netSetStatus("Код скопирован: " + value);
+      haptic("light");
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).then(done, fallback);
+      return;
+    }
+
+    fallback();
+
+    function fallback() {
+      try {
+        var area = document.createElement("textarea");
+        area.value = value;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand("copy");
+        document.body.removeChild(area);
+        done();
+      } catch (error) {
+        netSetStatus("Код: " + value);
+      }
+    }
+  }
+
+  if (netBtn) {
+    netBtn.addEventListener("click", function () {
+      haptic("light");
+      openLobby();
+    });
+  }
+
+  if (lobbyClose) {
+    lobbyClose.addEventListener("click", function () {
+      haptic("light");
+      closeLobby();
+    });
+  }
+
+  if (createRoomBtn) {
+    createRoomBtn.addEventListener("click", function () {
+      haptic("medium");
+      netConnect(makeRoomCode());
+    });
+  }
+
+  if (joinRoomBtn) {
+    joinRoomBtn.addEventListener("click", function () {
+      haptic("medium");
+      var code = (roomInput ? roomInput.value : "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "")
+        .slice(0, 5);
+      if (code.length !== 5) {
+        netSetStatus("Код комнаты — 5 символов", true);
+        return;
+      }
+      netConnect(code);
+    });
+  }
+
+  if (roomInput) {
+    roomInput.addEventListener("input", function () {
+      roomInput.value = roomInput.value
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "")
+        .slice(0, 5);
+    });
+    roomInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (joinRoomBtn) joinRoomBtn.click();
+      }
+    });
+  }
+
+  if (copyCodeBtn) copyCodeBtn.addEventListener("click", copyRoomCode);
+
+  if (leaveRoomBtn) {
+    leaveRoomBtn.addEventListener("click", function () {
+      haptic("medium");
+      netLeave(false);
+    });
+  }
+
+  window.addEventListener("mini:lobby", function () {
+    openLobby();
+  });
+
+  window.addEventListener("pagehide", function () {
+    netLeave(true);
+  });
+
   if (window.GameStore) {
     window.GameStore.onChange(function (snapshot) {
       updateCoinHud(snapshot);
       applyLoadout(snapshot);
+      if (net.room) {
+        net.skin = snapshot.skin;
+        netRenderPlayers();
+      }
     });
   }
 
@@ -887,6 +1540,8 @@
       start();
     } else {
       stop();
+      closeLobby();
+      netLeave(true);
     }
   });
 

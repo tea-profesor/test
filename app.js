@@ -212,6 +212,12 @@
         var target = button.getAttribute("data-nav");
         haptic(target === "play" ? "medium" : "light");
         showScreen(target);
+
+        if (button.hasAttribute("data-lobby")) {
+          window.setTimeout(function () {
+            window.dispatchEvent(new CustomEvent("mini:lobby"));
+          }, 140);
+        }
       });
     });
 
@@ -239,11 +245,52 @@
     }
   }
 
+  function renderSkins(snapshot) {
+    var grid = $("#skinsGrid");
+    if (!grid || !GameStore) return;
+
+    grid.innerHTML = GameStore.SKINS.map(function (skin) {
+      var owned = snapshot.skins.indexOf(skin.id) >= 0;
+      var equipped = snapshot.skin === skin.id;
+      var affordable = snapshot.coins >= skin.price;
+      var disabled = equipped || (!owned && !affordable);
+      var label = equipped ? "Выбран" : owned ? "Выбрать" : "Купить";
+      var price = owned ? (equipped ? "Активен" : "Куплен") : skin.price + " монет";
+
+      return (
+        '<article class="skin-card' +
+        (equipped ? " is-equipped" : "") +
+        '">' +
+        '<div class="skin-preview" style="--skin-a:' +
+        skin.css[0] +
+        ";--skin-b:" +
+        skin.css[1] +
+        ";--skin-c:" +
+        skin.css[2] +
+        '"></div>' +
+        '<div class="skin-meta"><div class="skin-name">' +
+        skin.name +
+        '</div><div class="skin-price">' +
+        price +
+        "</div></div>" +
+        '<button class="buy-btn" data-skin="' +
+        skin.id +
+        '"' +
+        (disabled ? " disabled" : "") +
+        ">" +
+        label +
+        "</button></article>"
+      );
+    }).join("");
+  }
+
   function updateShop(snapshot) {
     var balance = $("#shopBalance");
     var item = $("#bowItem");
     var button = $("#buyBowBtn");
     var hint = $("#bowHint");
+
+    renderSkins(snapshot);
 
     if (balance) balance.textContent = String(snapshot.coins);
     if (item) item.classList.toggle("is-owned", snapshot.bow);
@@ -282,6 +329,30 @@
           notify("Не хватает монет");
         } else {
           notify("Лук уже куплен");
+        }
+      });
+    }
+
+    var grid = $("#skinsGrid");
+    if (grid) {
+      grid.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-skin]");
+        if (!button || button.disabled) return;
+        var id = button.getAttribute("data-skin");
+        haptic("medium");
+
+        if (window.GameStore.hasSkin(id)) {
+          window.GameStore.equipSkin(id);
+          notify("Скин выбран");
+          return;
+        }
+
+        var result = window.GameStore.buySkin(id);
+        if (result.ok) {
+          haptic("heavy");
+          notify("Скин куплен и надет");
+        } else if (result.reason === "coins") {
+          notify("Не хватает монет");
         }
       });
     }

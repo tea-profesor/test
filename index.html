@@ -73,6 +73,12 @@
       <path d="M5 4l8.2 16"/>
       <path d="M8.2 12H20M20 12l-3-2.2M20 12l-3 2.2"/>
     </symbol>
+    <symbol id="i-network" viewBox="0 0 24 24">
+      <circle cx="6" cy="12" r="2.2"/>
+      <circle cx="18" cy="6" r="2.2"/>
+      <circle cx="18" cy="18" r="2.2"/>
+      <path d="m8 11.1 7.9-4.1M8 12.9l7.9 4.1"/>
+    </symbol>
   </svg>
 
   <div id="app">
@@ -99,22 +105,28 @@
           <span class="menu-label">Играть</span>
           <span class="menu-arrow"><svg><use href="#i-arrow"/></svg></span>
         </button>
-        <button class="menu-btn" data-nav="friends" style="--i:1">
+        <button class="menu-btn" data-nav="play" data-lobby="1" style="--i:1">
+          <span class="menu-icon"><svg><use href="#i-network"/></svg></span>
+          <span class="menu-label">Мультиплеер</span>
+          <span class="menu-tag">до 5</span>
+          <span class="menu-arrow"><svg><use href="#i-arrow"/></svg></span>
+        </button>
+        <button class="menu-btn" data-nav="friends" style="--i:2">
           <span class="menu-icon"><svg><use href="#i-friends"/></svg></span>
           <span class="menu-label">Друзья</span>
           <span class="menu-arrow"><svg><use href="#i-arrow"/></svg></span>
         </button>
-        <button class="menu-btn" data-nav="shop" style="--i:2">
+        <button class="menu-btn" data-nav="shop" style="--i:3">
           <span class="menu-icon"><svg><use href="#i-shop"/></svg></span>
           <span class="menu-label">Магазин</span>
           <span class="menu-arrow"><svg><use href="#i-arrow"/></svg></span>
         </button>
-        <button class="menu-btn" data-nav="news" style="--i:3">
+        <button class="menu-btn" data-nav="news" style="--i:4">
           <span class="menu-icon"><svg><use href="#i-news"/></svg></span>
           <span class="menu-label">Новости</span>
           <span class="menu-arrow"><svg><use href="#i-arrow"/></svg></span>
         </button>
-        <button class="menu-btn" data-nav="chat" style="--i:4">
+        <button class="menu-btn" data-nav="chat" style="--i:5">
           <span class="menu-icon"><svg><use href="#i-chat"/></svg></span>
           <span class="menu-label">Чат</span>
           <span class="menu-arrow"><svg><use href="#i-arrow"/></svg></span>
@@ -148,6 +160,10 @@
           </div>
         </div>
         <button class="game-exit" data-back aria-label="Выйти"><svg><use href="#i-close"/></svg></button>
+        <button class="game-net" id="netBtn" aria-label="Сетевая игра">
+          <svg><use href="#i-network"/></svg>
+          <span id="netLabel">Сеть</span>
+        </button>
         <div class="crosshair" aria-hidden="true"></div>
         <div class="game-hint" id="gameHint">Джойстик — движение · свайп — обзор</div>
         <div class="joystick" id="joystick" aria-label="Джойстик движения">
@@ -159,6 +175,43 @@
         </div>
         <div class="coin-pop" id="coinPop">+100</div>
         <div class="game-flash" id="gameFlash"></div>
+      </div>
+
+      <div class="lobby" id="lobby" hidden>
+        <div class="lobby-panel">
+          <div class="lobby-head">
+            <h2>Сетевая игра</h2>
+            <button class="lobby-close" id="lobbyClose" aria-label="Закрыть">
+              <svg><use href="#i-close"/></svg>
+            </button>
+          </div>
+          <p class="lobby-sub">До 5 игроков · общий мир и скины</p>
+
+          <div id="lobbySetup">
+            <button class="action-btn" id="createRoomBtn">Создать комнату</button>
+            <div class="lobby-or"><span>или</span></div>
+            <div class="lobby-join">
+              <input id="roomInput" maxlength="5" placeholder="КОД" autocomplete="off" autocapitalize="characters" spellcheck="false">
+              <button id="joinRoomBtn">Войти</button>
+            </div>
+          </div>
+
+          <div id="lobbyRoom" hidden>
+            <div class="lobby-code-row">
+              <span>Комната</span>
+              <b id="roomCode">—</b>
+              <button class="copy-btn" id="copyCodeBtn" aria-label="Скопировать код">
+                <svg><use href="#i-share"/></svg>
+              </button>
+            </div>
+            <div class="lobby-count"><span id="roomCount">1/5</span><span>игроков</span></div>
+            <div class="room-players" id="roomPlayers"></div>
+            <div class="lobby-status" id="lobbyStatus">Подключение…</div>
+            <button class="action-btn action-btn--ghost" id="leaveRoomBtn">Выйти из сети</button>
+          </div>
+
+          <p class="lobby-note">Публичный релей: доступ по коду комнаты. Не передавайте личные данные.</p>
+        </div>
       </div>
     </section>
 
@@ -205,6 +258,8 @@
           </div>
           <button class="buy-btn" id="buyBowBtn" disabled>Купить</button>
         </article>
+        <div class="list-head">Скины</div>
+        <div class="skins-grid" id="skinsGrid"></div>
       </div>
     </section>
 
@@ -261,6 +316,7 @@
   <script src="telegram-web-app.js"></script>
   <script src="store.js"></script>
   <script src="three.min.js"></script>
+  <script src="mqtt.min.js"></script>
   <script src="game.js"></script>
   <script src="app.js"></script>
 </body>
