@@ -64,6 +64,15 @@
       <path d="M5 4h3l11 11v3h-3L5 7V4Z"/>
       <path d="M19 4h-3L6 14v3h3L19 7V4Z"/>
     </symbol>
+    <symbol id="i-coin" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5"/>
+      <path d="m12 7.6 1.3 2.6 2.8.4-2 2 .5 2.8-2.6-1.4-2.6 1.4.5-2.8-2-2 2.8-.4L12 7.6Z" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-bow" viewBox="0 0 24 24">
+      <path d="M5 4c5.6 2.6 8.2 8.2 8.2 16"/>
+      <path d="M5 4l8.2 16"/>
+      <path d="M8.2 12H20M20 12l-3-2.2M20 12l-3 2.2"/>
+    </symbol>
   </svg>
 
   <div id="app">
@@ -125,11 +134,17 @@
         <canvas id="gameCanvas"></canvas>
       </div>
       <div class="game-ui">
-        <div class="hud-health" id="hudHealth">
-          <svg class="hud-heart"><use href="#i-heart"/></svg>
-          <div class="hud-info">
-            <div class="hud-row"><span class="hud-label">HP</span><span class="hud-value" id="hpValue">100</span></div>
-            <div class="hp-track"><div class="hp-fill" id="hpFill"></div></div>
+        <div class="hud-stack">
+          <div class="hud-health" id="hudHealth">
+            <svg class="hud-heart"><use href="#i-heart"/></svg>
+            <div class="hud-info">
+              <div class="hud-row"><span class="hud-label">HP</span><span class="hud-value" id="hpValue">100</span></div>
+              <div class="hp-track"><div class="hp-fill" id="hpFill"></div></div>
+            </div>
+          </div>
+          <div class="hud-coins">
+            <svg><use href="#i-coin"/></svg>
+            <span id="hudCoinsValue">0</span>
           </div>
         </div>
         <button class="game-exit" data-back aria-label="Выйти"><svg><use href="#i-close"/></svg></button>
@@ -142,6 +157,7 @@
           <button class="game-btn game-btn--attack" id="attackBtn" aria-label="Атака"><svg><use href="#i-attack"/></svg></button>
           <button class="game-btn game-btn--jump" id="jumpBtn" aria-label="Прыжок"><svg><use href="#i-jump"/></svg></button>
         </div>
+        <div class="coin-pop" id="coinPop">+100</div>
         <div class="game-flash" id="gameFlash"></div>
       </div>
     </section>
@@ -170,30 +186,25 @@
       <header class="screen-head">
         <button class="back-btn" data-back aria-label="Назад"><svg><use href="#i-back"/></svg></button>
         <h1 class="screen-title">Магазин</h1>
-        <div class="balance"><svg><use href="#i-spark"/></svg><span>0</span></div>
+        <div class="balance"><svg><use href="#i-coin"/></svg><span id="shopBalance">0</span></div>
       </header>
       <div class="screen-body">
-        <div class="list-head">Товары</div>
-        <div class="shop-grid">
-          <article class="shop-item">
-            <div class="shop-art shop-art--violet"><svg><use href="#i-spark"/></svg></div>
-            <h3>Неоновый скин</h3>
-            <div class="price"><svg><use href="#i-spark"/></svg>500</div>
-            <button class="buy-btn" disabled>Скоро</button>
-          </article>
-          <article class="shop-item">
-            <div class="shop-art shop-art--cyan"><svg><use href="#i-play"/></svg></div>
-            <h3>Буст ×2</h3>
-            <div class="price"><svg><use href="#i-spark"/></svg>300</div>
-            <button class="buy-btn" disabled>Скоро</button>
-          </article>
-          <article class="shop-item">
-            <div class="shop-art shop-art--pink"><svg><use href="#i-gift"/></svg></div>
-            <h3>Рамка профиля</h3>
-            <div class="price"><svg><use href="#i-spark"/></svg>800</div>
-            <button class="buy-btn" disabled>Скоро</button>
-          </article>
+        <div class="card card--earn">
+          <div class="card-icon card-icon--gold"><svg><use href="#i-coin"/></svg></div>
+          <h2>Монеты за победы</h2>
+          <p>+100 монет за каждого побеждённого врага. Баланс сохраняется в вашем профиле.</p>
         </div>
+        <div class="list-head">Оружие</div>
+        <article class="shop-item shop-item--wide" id="bowItem">
+          <div class="shop-art shop-art--gold"><svg><use href="#i-bow"/></svg></div>
+          <div class="shop-info">
+            <h3>Лук бесконечных стрел</h3>
+            <p>Дальний бой: атака выпускает стрелы, боезапас не ограничен.</p>
+            <div class="price"><svg><use href="#i-coin"/></svg>300</div>
+            <div class="shop-note" id="bowHint">Нужно 300 монет</div>
+          </div>
+          <button class="buy-btn" id="buyBowBtn" disabled>Купить</button>
+        </article>
       </div>
     </section>
 
@@ -248,6 +259,7 @@
   </div>
 
   <script src="telegram-web-app.js"></script>
+  <script src="store.js"></script>
   <script src="three.min.js"></script>
   <script src="game.js"></script>
   <script src="app.js"></script>

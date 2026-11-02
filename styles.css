@@ -389,9 +389,9 @@ svg {
   gap: 6px;
   padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(67, 231, 255, 0.28);
-  background: rgba(67, 231, 255, 0.1);
-  color: var(--cyan);
+  border: 1px solid rgba(255, 209, 102, 0.3);
+  background: rgba(255, 209, 102, 0.1);
+  color: #ffd166;
   font-size: 13px;
   font-weight: 700;
 }
@@ -530,6 +530,11 @@ svg {
   background: linear-gradient(135deg, rgba(67, 231, 255, 0.7), rgba(79, 123, 255, 0.5));
 }
 
+.card-icon--gold {
+  color: #3a2a00;
+  background: linear-gradient(135deg, #ffe08a, #ffb020);
+}
+
 .action-btn {
   margin-top: 16px;
   width: 100%;
@@ -639,6 +644,11 @@ svg {
   background: linear-gradient(140deg, rgba(255, 79, 216, 0.42), rgba(255, 79, 216, 0.1));
 }
 
+.shop-art--gold {
+  color: #3a2a00;
+  background: linear-gradient(140deg, rgba(255, 209, 102, 0.7), rgba(255, 176, 32, 0.2));
+}
+
 .shop-item h3 {
   margin: 0;
   font-size: 14px;
@@ -649,7 +659,7 @@ svg {
   display: flex;
   align-items: center;
   gap: 5px;
-  color: var(--cyan);
+  color: #ffd166;
   font-size: 13px;
   font-weight: 700;
 }
@@ -847,10 +857,17 @@ svg {
   pointer-events: none;
 }
 
-.hud-health {
+.hud-stack {
   position: absolute;
   top: calc(var(--safe-top) + 14px);
   left: calc(var(--safe-left) + 14px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hud-health {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1156,4 +1173,116 @@ svg {
   .game-hint {
     bottom: calc(var(--safe-bottom) + 148px);
   }
+}
+
+
+.hud-coins {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 209, 102, 0.32);
+  background: rgba(6, 16, 11, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffd166;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.hud-coins svg {
+  width: 16px;
+  height: 16px;
+}
+
+.coin-pop {
+  position: absolute;
+  left: calc(var(--safe-left) + 24px);
+  top: calc(var(--safe-top) + 152px);
+  color: #ffd166;
+  font-size: 18px;
+  font-weight: 800;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.coin-pop.is-active {
+  animation: coinPop 0.9s ease-out;
+}
+
+@keyframes coinPop {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-28px) scale(1);
+  }
+}
+
+.shop-item--wide {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 4px 14px;
+  align-items: center;
+  padding: 14px;
+}
+
+.shop-item--wide .shop-art {
+  grid-row: span 2;
+  height: 78px;
+  margin: 0;
+}
+
+.shop-item--wide .shop-info {
+  min-width: 0;
+}
+
+.shop-item--wide h3 {
+  font-size: 15px;
+}
+
+.shop-item--wide .buy-btn {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+}
+
+.shop-info p {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.shop-note {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.shop-note.is-ready {
+  color: #3ee08f;
+}
+
+.shop-note.is-owned {
+  color: #ffd166;
+}
+
+.shop-item.is-owned {
+  border-color: rgba(62, 224, 143, 0.38);
+  box-shadow: 0 0 0 1px rgba(62, 224, 143, 0.12), 0 14px 34px rgba(0, 0, 0, 0.24);
+}
+
+.buy-btn:not(:disabled) {
+  color: #06170f;
+  background: linear-gradient(135deg, #8ef0a8, #3ee08f);
+  border-color: transparent;
+  box-shadow: 0 8px 22px rgba(62, 224, 143, 0.28);
 }

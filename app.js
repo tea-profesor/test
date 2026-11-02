@@ -239,6 +239,56 @@
     }
   }
 
+  function updateShop(snapshot) {
+    var balance = $("#shopBalance");
+    var item = $("#bowItem");
+    var button = $("#buyBowBtn");
+    var hint = $("#bowHint");
+
+    if (balance) balance.textContent = String(snapshot.coins);
+    if (item) item.classList.toggle("is-owned", snapshot.bow);
+
+    if (button) {
+      button.disabled = snapshot.bow || snapshot.coins < GameStore.BOW_PRICE;
+      button.textContent = snapshot.bow ? "Куплено" : "Купить";
+    }
+
+    if (hint) {
+      if (snapshot.bow) {
+        hint.textContent = "В инвентаре · стрелы бесконечны";
+        hint.className = "shop-note is-owned";
+      } else if (snapshot.coins >= GameStore.BOW_PRICE) {
+        hint.textContent = "Можно купить";
+        hint.className = "shop-note is-ready";
+      } else {
+        hint.textContent = "Не хватает " + (GameStore.BOW_PRICE - snapshot.coins) + " монет";
+        hint.className = "shop-note";
+      }
+    }
+  }
+
+  function setupShop() {
+    if (!window.GameStore) return;
+
+    var button = $("#buyBowBtn");
+    if (button) {
+      button.addEventListener("click", function () {
+        haptic("medium");
+        var result = window.GameStore.buyBow();
+        if (result.ok) {
+          haptic("heavy");
+          notify("Лук куплен! Стрелы бесконечны.");
+        } else if (result.reason === "coins") {
+          notify("Не хватает монет");
+        } else {
+          notify("Лук уже куплен");
+        }
+      });
+    }
+
+    window.GameStore.onChange(updateShop);
+  }
+
   function bindTelegram() {
     if (!tg) return;
 
@@ -266,6 +316,7 @@
     bindTelegram();
     bindNavigation();
     setupChat();
+    setupShop();
     setUser();
     setPlatform();
   }

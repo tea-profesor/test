@@ -11,6 +11,8 @@
   var hpValue = document.getElementById("hpValue");
   var hpFill = document.getElementById("hpFill");
   var hudHealth = document.getElementById("hudHealth");
+  var hudCoinsValue = document.getElementById("hudCoinsValue");
+  var coinPop = document.getElementById("coinPop");
   var flash = document.getElementById("gameFlash");
   var hint = document.getElementById("gameHint");
 
@@ -25,6 +27,8 @@
     walk: 0,
     attackT: 0,
     damageCd: 0,
+    bowKick: 0,
+    bowEquipped: false,
     hintTimer: 0
   };
 
@@ -46,12 +50,16 @@
   var camera = null;
   var weapon = null;
   var weaponBase = null;
+  var swordGroup = null;
+  var bowGroup = null;
   var enemies = [];
   var effects = [];
+  var arrows = [];
 
   var tmpForward = null;
   var tmpRight = null;
   var tmpVec = null;
+  var upAxis = null;
 
   function clamp(value, min, max) {
     return value < min ? min : value > max ? max : value;
@@ -151,6 +159,7 @@
     tmpForward = new THREE.Vector3();
     tmpRight = new THREE.Vector3();
     tmpVec = new THREE.Vector3();
+    upAxis = new THREE.Vector3(0, 1, 0);
   }
 
   function addMountains() {
@@ -295,6 +304,8 @@
 
   function addWeapon() {
     weapon = new THREE.Group();
+    swordGroup = new THREE.Group();
+    bowGroup = new THREE.Group();
 
     var bladeMaterial = new THREE.MeshStandardMaterial({
       color: 0xbdf6ff,
@@ -307,20 +318,59 @@
 
     var blade = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.78, 0.05), bladeMaterial);
     blade.position.y = 0.52;
-    weapon.add(blade);
+    swordGroup.add(blade);
 
     var tip = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.18, 4), bladeMaterial);
     tip.position.y = 0.98;
     tip.rotation.y = Math.PI / 4;
-    weapon.add(tip);
+    swordGroup.add(tip);
 
     var guard = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.05, 0.08), gripMaterial);
     guard.position.y = 0.13;
-    weapon.add(guard);
+    swordGroup.add(guard);
 
     var grip = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.28, 8), gripMaterial);
     grip.position.y = -0.02;
-    weapon.add(grip);
+    swordGroup.add(grip);
+
+    var woodMaterial = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.85 });
+    var stringMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.65 });
+
+    var bowArc = -Math.PI * 0.55;
+    var bowSpan = Math.PI * 1.1;
+    var bowRadius = 0.3;
+
+    var limb = new THREE.Mesh(
+      new THREE.TorusGeometry(bowRadius, 0.022, 6, 28, bowSpan),
+      woodMaterial
+    );
+    limb.rotation.z = bowArc;
+    bowGroup.add(limb);
+
+    var pointA = new THREE.Vector3(
+      Math.cos(bowArc) * bowRadius,
+      Math.sin(bowArc) * bowRadius,
+      0
+    );
+    var pointB = new THREE.Vector3(
+      Math.cos(bowArc + bowSpan) * bowRadius,
+      Math.sin(bowArc + bowSpan) * bowRadius,
+      0
+    );
+    var stringGeometry = new THREE.BufferGeometry().setFromPoints([pointA, pointB]);
+    bowGroup.add(new THREE.Line(stringGeometry, stringMaterial));
+
+    var bowGrip = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.16, 8), gripMaterial);
+    bowGrip.position.set(bowRadius, 0, 0);
+    bowGroup.add(bowGrip);
+
+    bowGroup.position.set(-0.34, -0.26, -0.62);
+    bowGroup.rotation.set(-0.18, 0.24, -0.12);
+    bowGroup.visible = false;
+    swordGroup.visible = true;
+
+    weapon.add(swordGroup);
+    weapon.add(bowGroup);
 
     weapon.position.set(0.4, -0.42, -0.62);
     weapon.rotation.set(-0.35, -0.3, -0.42);
@@ -461,6 +511,14 @@
 
   function attack() {
     if (!state.running || state.attackT > 0) return;
+    if (state.bowEquipped) {
+      shootArrow();
+    } else {
+      meleeAttack();
+    }
+  }
+
+  function meleeAttack() {
     state.attackT = 0.28;
     haptic("heavy");
 
@@ -477,21 +535,128 @@
       var dot = (dx / distance) * tmpForward.x + (dz / distance) * tmpForward.z;
       if (dot < 0.35) return;
 
-      enemy.hp -= 36;
-      enemy.bodyMaterial.emissiveIntensity = 3;
-      enemy.bodyMaterial.emissive.setHex(0xfff1c4);
-      enemy.headMaterial.emissiveIntensity = 2.4;
+      damageEnemy(enemy, 36);
       hitAny = true;
-
-      if (enemy.hp <= 0) {
-        enemy.alive = false;
-        enemy.group.visible = false;
-        enemy.respawnAt = state.time + 5;
-        spawnRing(enemy.group.position);
-      }
     });
 
     if (hitAny) haptic("light");
+  }
+
+  function makeArrow() {
+    var group = new THREE.Group();
+
+    var shaft = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.012, 0.012, 0.82, 5),
+      new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.8 })
+    );
+    group.add(shaft);
+
+    var tip = new THREE.Mesh(
+      new THREE.ConeGeometry(0.045, 0.14, 4),
+      new THREE.MeshStandardMaterial({
+        color: 0xd8f6ff,
+        emissive: 0x2fd9ff,
+        emissiveIntensity: 1.1,
+        metalness: 0.4,
+        roughness: 0.3
+      })
+    );
+    tip.position.y = 0.48;
+    group.add(tip);
+
+    var fletch = new THREE.Mesh(
+      new THREE.ConeGeometry(0.06, 0.13, 4),
+      new THREE.MeshStandardMaterial({ color: 0xff6b6b, roughness: 0.8 })
+    );
+    fletch.position.y = -0.42;
+    fletch.rotation.x = Math.PI;
+    group.add(fletch);
+
+    return group;
+  }
+
+  function shootArrow() {
+    state.attackT = 0.45;
+    state.bowKick = 1;
+    haptic("heavy");
+
+    camera.updateMatrixWorld(true);
+    camera.getWorldDirection(tmpForward);
+    var direction = tmpForward.clone().normalize();
+    var origin = camera.position.clone().addScaledVector(direction, 0.55);
+
+    var mesh = makeArrow();
+    mesh.position.copy(origin);
+    mesh.quaternion.setFromUnitVectors(upAxis, direction);
+    scene.add(mesh);
+
+    arrows.push({ mesh: mesh, dir: direction, life: 2.6 });
+  }
+
+  function damageEnemy(enemy, amount) {
+    if (!enemy.alive) return;
+    enemy.hp -= amount;
+    enemy.bodyMaterial.emissiveIntensity = 3;
+    enemy.bodyMaterial.emissive.setHex(0xfff1c4);
+    enemy.headMaterial.emissiveIntensity = 2.4;
+    if (enemy.hp <= 0) killEnemy(enemy);
+  }
+
+  function killEnemy(enemy) {
+    enemy.alive = false;
+    enemy.group.visible = false;
+    enemy.respawnAt = state.time + 5;
+    spawnRing(enemy.group.position);
+
+    if (window.GameStore) {
+      var reward = window.GameStore.registerKill();
+      showCoinPop(reward);
+      updateCoinHud();
+    }
+  }
+
+  function showCoinPop(amount) {
+    if (!coinPop || !amount) return;
+    coinPop.textContent = "+" + amount;
+    coinPop.classList.remove("is-active");
+    void coinPop.offsetWidth;
+    coinPop.classList.add("is-active");
+  }
+
+  function updateCoinHud(snapshot) {
+    if (!hudCoinsValue) return;
+    var data = snapshot || (window.GameStore ? window.GameStore.get() : null);
+    if (data) hudCoinsValue.textContent = String(data.coins);
+  }
+
+  function applyLoadout(snapshot) {
+    if (!weapon) return;
+    var bow = snapshot ? snapshot.bow : window.GameStore ? window.GameStore.hasBow() : false;
+    state.bowEquipped = Boolean(bow);
+    if (swordGroup) swordGroup.visible = !state.bowEquipped;
+    if (bowGroup) bowGroup.visible = state.bowEquipped;
+  }
+
+  function removeArrow(index) {
+    var arrow = arrows[index];
+    scene.remove(arrow.mesh);
+    arrow.mesh.traverse(function (child) {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) child.material.dispose();
+    });
+    arrows.splice(index, 1);
+  }
+
+  function findArrowHit(x, y, z) {
+    for (var i = 0; i < enemies.length; i += 1) {
+      var enemy = enemies[i];
+      if (!enemy.alive) continue;
+      var dx = x - enemy.group.position.x;
+      var dz = z - enemy.group.position.z;
+      var dy = y - (enemy.group.position.y + 0.9);
+      if (dx * dx + dz * dz < 0.36 && Math.abs(dy) < 1) return enemy;
+    }
+    return null;
   }
 
   function spawnRing(position) {
@@ -546,19 +711,20 @@
     state.time += dt;
     if (state.damageCd > 0) state.damageCd -= dt;
 
-    if (state.attackT > 0) {
-      state.attackT = Math.max(0, state.attackT - dt);
-      var k = 1 - state.attackT / 0.28;
-      var swing = Math.sin(k * Math.PI);
+    if (state.attackT > 0) state.attackT = Math.max(0, state.attackT - dt);
+
+    if (state.bowEquipped) {
+      state.bowKick = Math.max(0, state.bowKick - dt * 5);
+      weapon.position.z += (weaponBase.pz + state.bowKick * 0.12 - weapon.position.z) * 0.3;
+      weapon.rotation.z += (weaponBase.z - weapon.rotation.z) * 0.2;
+      weapon.rotation.x += (weaponBase.x - weapon.rotation.x) * 0.2;
+      weapon.position.y += (weaponBase.py - weapon.position.y) * 0.2;
+    } else {
+      var swing = state.attackT > 0 ? Math.sin((1 - state.attackT / 0.28) * Math.PI) : 0;
       weapon.rotation.z = weaponBase.z - swing * 1.35;
       weapon.rotation.x = weaponBase.x + swing * 0.45;
       weapon.position.z = weaponBase.pz - swing * 0.22;
       weapon.position.y = weaponBase.py + swing * 0.08;
-    } else {
-      weapon.rotation.z += (weaponBase.z - weapon.rotation.z) * 0.2;
-      weapon.rotation.x += (weaponBase.x - weapon.rotation.x) * 0.2;
-      weapon.position.z += (weaponBase.pz - weapon.position.z) * 0.2;
-      weapon.position.y += (weaponBase.py - weapon.position.y) * 0.2;
     }
 
     tmpForward.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
@@ -622,6 +788,38 @@
       }
     });
 
+    for (var a = arrows.length - 1; a >= 0; a -= 1) {
+      var arrow = arrows[a];
+      arrow.life -= dt;
+      var step = 34 * dt;
+      var midX = arrow.mesh.position.x + arrow.dir.x * step * 0.5;
+      var midY = arrow.mesh.position.y + arrow.dir.y * step * 0.5;
+      var midZ = arrow.mesh.position.z + arrow.dir.z * step * 0.5;
+      arrow.mesh.position.addScaledVector(arrow.dir, step);
+
+      var hit = findArrowHit(midX, midY, midZ) || findArrowHit(
+        arrow.mesh.position.x,
+        arrow.mesh.position.y,
+        arrow.mesh.position.z
+      );
+
+      if (hit) {
+        damageEnemy(hit, 50);
+        removeArrow(a);
+        continue;
+      }
+
+      if (
+        arrow.life <= 0 ||
+        Math.abs(arrow.mesh.position.x) > 80 ||
+        Math.abs(arrow.mesh.position.z) > 80 ||
+        arrow.mesh.position.y < -1 ||
+        arrow.mesh.position.y > 45
+      ) {
+        removeArrow(a);
+      }
+    }
+
     for (var i = effects.length - 1; i >= 0; i -= 1) {
       var effect = effects[i];
       effect.life -= dt;
@@ -658,7 +856,9 @@
     state.last = window.performance.now();
     resize();
     updateHealth();
-    setHint("Джойстик — движение · свайп — обзор");
+    applyLoadout();
+    updateCoinHud();
+    setHint(state.bowEquipped ? "Лук · стрелы бесконечны · свайп — обзор" : "Джойстик — движение · свайп — обзор");
     renderer.render(scene, camera);
     state.raf = window.requestAnimationFrame(loop);
   }
@@ -672,6 +872,13 @@
     input.x = 0;
     input.y = 0;
     if (knob) knob.style.transform = "translate(0px, 0px)";
+  }
+
+  if (window.GameStore) {
+    window.GameStore.onChange(function (snapshot) {
+      updateCoinHud(snapshot);
+      applyLoadout(snapshot);
+    });
   }
 
   window.addEventListener("mini:screen", function (event) {
