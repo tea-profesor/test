@@ -34,9 +34,11 @@ python3 -m http.server 8080
 
 ## Подключение к Telegram
 
-1. Создать бота у [@BotFather](https://t.me/BotFather): `/newbot`.
-2. `/newapp` или **Bot Settings → Menu Button** — указать URL сайта с GitHub Pages.
-3. Открыть бота, нажать кнопку меню — Mini App запустится внутри Telegram.
+Бот: [@ligigark_bot](https://t.me/ligigark_bot), приложение: `https://tea-profesor.github.io/test/`.
+
+1. У [@BotFather](https://t.me/BotFather) выполнить `/setmenubutton`, выбрать `@ligigark_bot`.
+2. Указать URL `https://tea-profesor.github.io/test/` и текст кнопки `Играть`.
+3. Открыть бота и нажать кнопку меню — Mini App запустится внутри Telegram.
 
 Для продакшена рекомендуется собственный домен: Telegram требует HTTPS, GitHub Pages его даёт по умолчанию.
 

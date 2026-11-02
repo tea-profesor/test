@@ -1,6 +1,7 @@
 (function () {
   "use strict";
 
+  var BOT_URL = "https://t.me/ligigark_bot";
   var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   var tgUser = tg && tg.initDataUnsafe ? tg.initDataUnsafe.user : null;
 
@@ -152,7 +153,7 @@
 
   function invite() {
     haptic("medium");
-    var url = window.location.origin + window.location.pathname;
+    var url = BOT_URL;
     var share = "https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent("Залетай в Mini Arcade!");
     try {
       if (tg && tg.openTelegramLink) {
