@@ -471,6 +471,12 @@ svg {
   border-color: rgba(255, 209, 102, 0.26);
 }
 
+.badge--live {
+  color: #3ee08f;
+  background: rgba(62, 224, 143, 0.12);
+  border-color: rgba(62, 224, 143, 0.26);
+}
+
 .pulse-orb {
   position: absolute;
   left: 50%;
@@ -517,6 +523,11 @@ svg {
 .card-icon--violet {
   color: #d9d2ff;
   background: linear-gradient(135deg, rgba(123, 92, 255, 0.85), rgba(79, 123, 255, 0.55));
+}
+
+.card-icon--cyan {
+  color: #d6faff;
+  background: linear-gradient(135deg, rgba(67, 231, 255, 0.7), rgba(79, 123, 255, 0.5));
 }
 
 .action-btn {

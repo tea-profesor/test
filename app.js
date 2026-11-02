@@ -2,6 +2,7 @@
   "use strict";
 
   var BOT_URL = "https://t.me/ligigark_bot";
+  var CHAT_URL = "";
   var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   var tgUser = tg && tg.initDataUnsafe ? tg.initDataUnsafe.user : null;
 
@@ -151,20 +152,50 @@
     label.textContent = isTelegram ? "Telegram · " + (names[key] || "Mini App") : "Browser";
   }
 
-  function invite() {
-    haptic("medium");
-    var url = BOT_URL;
-    var share = "https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent("Залетай в Mini Arcade!");
+  function openExternal(url) {
     try {
-      if (tg && tg.openTelegramLink) {
-        tg.openTelegramLink(share);
+      if (tg && tg.openTelegramLink && url.indexOf("https://t.me/") === 0) {
+        tg.openTelegramLink(url);
       } else {
-        window.open(share, "_blank", "noopener");
+        window.open(url, "_blank", "noopener");
       }
     } catch (error) {
-      notify("Ссылка скопирована");
       copyText(url);
+      notify("Ссылка скопирована");
     }
+  }
+
+  function invite() {
+    haptic("medium");
+    var share = "https://t.me/share/url?url=" + encodeURIComponent(BOT_URL) + "&text=" + encodeURIComponent("Залетай в Mini Arcade!");
+    openExternal(share);
+  }
+
+  function openChat() {
+    haptic("medium");
+    if (!CHAT_URL) {
+      openExternal(BOT_URL);
+      notify("Чат ещё не подключён");
+      return;
+    }
+    openExternal(CHAT_URL);
+  }
+
+  function setupChat() {
+    if (!CHAT_URL) return;
+
+    var badge = $("#chatBadge");
+    var title = $("#chatTitle");
+    var text = $("#chatText");
+    var label = $("#openChatLabel");
+
+    if (badge) {
+      badge.textContent = "онлайн";
+      badge.classList.add("badge--live");
+    }
+    if (title) title.textContent = "Общий чат";
+    if (text) text.textContent = "Общайтесь с другими игроками, задавайте вопросы и делитесь рекордами.";
+    if (label) label.textContent = "Открыть чат";
   }
 
   function copyText(text) {
@@ -191,6 +222,9 @@
 
     var inviteBtn = $("#inviteBtn");
     if (inviteBtn) inviteBtn.addEventListener("click", invite);
+
+    var openChatBtn = $("#openChatBtn");
+    if (openChatBtn) openChatBtn.addEventListener("click", openChat);
 
     if (tg && tg.BackButton) {
       try {
@@ -229,6 +263,7 @@
 
     bindTelegram();
     bindNavigation();
+    setupChat();
     setUser();
     setPlatform();
   }

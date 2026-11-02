@@ -46,6 +46,10 @@
       <circle cx="18" cy="18.5" r="2.6"/>
       <path d="m8.4 10.7 7.2-4M8.4 13.3l7.2 4"/>
     </symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24">
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9l-5 4V6.5Z"/>
+      <path d="M8.5 8.5h7M8.5 12h4.5"/>
+    </symbol>
   </svg>
 
   <div id="app">
@@ -85,6 +89,11 @@
         <button class="menu-btn" data-nav="news" style="--i:3">
           <span class="menu-icon"><svg><use href="#i-news"/></svg></span>
           <span class="menu-label">Новости</span>
+          <span class="menu-arrow"><svg><use href="#i-arrow"/></svg></span>
+        </button>
+        <button class="menu-btn" data-nav="chat" style="--i:4">
+          <span class="menu-icon"><svg><use href="#i-chat"/></svg></span>
+          <span class="menu-label">Чат</span>
           <span class="menu-arrow"><svg><use href="#i-arrow"/></svg></span>
         </button>
       </nav>
@@ -184,6 +193,29 @@
           <h3>Как запустить Mini App</h3>
           <p>Откройте бота, нажмите кнопку меню — и приложение откроется прямо в Telegram.</p>
         </article>
+      </div>
+    </section>
+
+    <section class="screen screen--section" data-screen="chat">
+      <header class="screen-head">
+        <button class="back-btn" data-back aria-label="Назад"><svg><use href="#i-back"/></svg></button>
+        <h1 class="screen-title">Чат</h1>
+      </header>
+      <div class="screen-body">
+        <div class="card card--invite">
+          <div class="card-icon card-icon--cyan"><svg><use href="#i-chat"/></svg></div>
+          <span class="badge" id="chatBadge">скоро</span>
+          <h2 id="chatTitle">Чат сообщества</h2>
+          <p id="chatText">Общий чат ещё не подключён. Создайте группу в Telegram и пришлите ссылку — добавлю её в приложение.</p>
+          <button class="action-btn" id="openChatBtn">
+            <svg><use href="#i-chat"/></svg>
+            <span id="openChatLabel">Открыть бота</span>
+          </button>
+        </div>
+        <div class="card">
+          <h2>Как это работает</h2>
+          <p>Общение идёт в группе Telegram: вход по вашему аккаунту, без регистрации и передачи лишних данных.</p>
+        </div>
       </div>
     </section>
 
