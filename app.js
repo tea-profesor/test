@@ -69,6 +69,8 @@
     if (name === "menu") {
       window.setTimeout(restartMenuAnimation, 60);
     }
+
+    window.dispatchEvent(new CustomEvent("mini:screen", { detail: { name: name } }));
   }
 
   function goBack() {

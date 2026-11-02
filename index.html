@@ -50,6 +50,20 @@
       <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9l-5 4V6.5Z"/>
       <path d="M8.5 8.5h7M8.5 12h4.5"/>
     </symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24">
+      <path d="M12 20.2S4.5 15.4 4.5 10.2A4.4 4.4 0 0 1 12 6.8a4.4 4.4 0 0 1 7.5 3.4c0 5.2-7.5 10-7.5 10Z" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-close" viewBox="0 0 24 24">
+      <path d="m6 6 12 12M18 6 6 18"/>
+    </symbol>
+    <symbol id="i-jump" viewBox="0 0 24 24">
+      <path d="M12 16V4m0 0-4.5 4.5M12 4l4.5 4.5"/>
+      <path d="M5 20h14"/>
+    </symbol>
+    <symbol id="i-attack" viewBox="0 0 24 24">
+      <path d="M5 4h3l11 11v3h-3L5 7V4Z"/>
+      <path d="M19 4h-3L6 14v3h3L19 7V4Z"/>
+    </symbol>
   </svg>
 
   <div id="app">
@@ -106,18 +120,29 @@
       </footer>
     </section>
 
-    <section class="screen screen--section" data-screen="play">
-      <header class="screen-head">
-        <button class="back-btn" data-back aria-label="Назад"><svg><use href="#i-back"/></svg></button>
-        <h1 class="screen-title">Игра</h1>
-      </header>
-      <div class="screen-body">
-        <div class="card card--hero">
-          <span class="badge">скоро</span>
-          <h2>Игра в разработке</h2>
-          <p>Механика и жанр скоро появятся здесь. Меню уже готово, экран игры подключим следующим шагом.</p>
-          <div class="pulse-orb"><svg><use href="#i-play"/></svg></div>
+    <section class="screen screen--game" data-screen="play">
+      <div class="game-stage" id="gameStage">
+        <canvas id="gameCanvas"></canvas>
+      </div>
+      <div class="game-ui">
+        <div class="hud-health" id="hudHealth">
+          <svg class="hud-heart"><use href="#i-heart"/></svg>
+          <div class="hud-info">
+            <div class="hud-row"><span class="hud-label">HP</span><span class="hud-value" id="hpValue">100</span></div>
+            <div class="hp-track"><div class="hp-fill" id="hpFill"></div></div>
+          </div>
         </div>
+        <button class="game-exit" data-back aria-label="Выйти"><svg><use href="#i-close"/></svg></button>
+        <div class="crosshair" aria-hidden="true"></div>
+        <div class="game-hint" id="gameHint">Джойстик — движение · свайп — обзор</div>
+        <div class="joystick" id="joystick" aria-label="Джойстик движения">
+          <div class="joystick-knob" id="joystickKnob"></div>
+        </div>
+        <div class="game-actions">
+          <button class="game-btn game-btn--attack" id="attackBtn" aria-label="Атака"><svg><use href="#i-attack"/></svg></button>
+          <button class="game-btn game-btn--jump" id="jumpBtn" aria-label="Прыжок"><svg><use href="#i-jump"/></svg></button>
+        </div>
+        <div class="game-flash" id="gameFlash"></div>
       </div>
     </section>
 
@@ -223,6 +248,8 @@
   </div>
 
   <script src="telegram-web-app.js"></script>
+  <script src="three.min.js"></script>
+  <script src="game.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
