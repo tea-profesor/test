@@ -297,7 +297,6 @@
         headMaterial: headMaterial,
         hp: 100,
         alive: true,
-        respawnAt: 0,
         phase: index * 1.7,
         baseY: 0
       });
@@ -617,8 +616,12 @@
   function killEnemy(enemy) {
     enemy.alive = false;
     enemy.group.visible = false;
-    enemy.respawnAt = state.time + 5;
     spawnRing(enemy.group.position);
+
+    var remaining = enemies.filter(function (item) {
+      return item.alive;
+    }).length;
+    if (!remaining) setHint("Все враги побеждены");
 
     if (window.GameStore) {
       var reward = window.GameStore.registerKill();
@@ -778,17 +781,7 @@
     }
 
     enemies.forEach(function (enemy) {
-      if (!enemy.alive) {
-        if (state.time >= enemy.respawnAt) {
-          enemy.alive = true;
-          enemy.hp = 100;
-          enemy.group.visible = true;
-          var angle = Math.random() * Math.PI * 2;
-          var distance = 12 + Math.random() * 20;
-          enemy.group.position.set(Math.cos(angle) * distance, 0, Math.sin(angle) * distance);
-        }
-        return;
-      }
+      if (!enemy.alive) return;
 
       enemy.group.position.y = Math.sin(state.time * 2 + enemy.phase) * 0.06;
       if (enemy.bodyMaterial.emissiveIntensity > 0.6) {
