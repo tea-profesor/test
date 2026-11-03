@@ -15,6 +15,9 @@
   var coinPop = document.getElementById("coinPop");
   var flash = document.getElementById("gameFlash");
   var hint = document.getElementById("gameHint");
+  var bossBar = document.getElementById("bossBar");
+  var bossHpValue = document.getElementById("bossHp");
+  var bossFill = document.getElementById("bossFill");
 
   var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
@@ -57,6 +60,8 @@
   var enemies = [];
   var effects = [];
   var arrows = [];
+  var boss = null;
+  var BOSS_MAX_HP = 1000;
 
   var tmpForward = null;
   var tmpRight = null;
@@ -550,6 +555,20 @@
       hitAny = true;
     });
 
+    if (boss && boss.alive) {
+      var bossDx = boss.group.position.x - origin.x;
+      var bossDz = boss.group.position.z - origin.z;
+      var bossDistance = Math.sqrt(bossDx * bossDx + bossDz * bossDz);
+      if (bossDistance < 4.6 && bossDistance > 0.01) {
+        var bossDot =
+          (bossDx / bossDistance) * tmpForward.x + (bossDz / bossDistance) * tmpForward.z;
+        if (bossDot > 0.25) {
+          damageBoss(36);
+          hitAny = true;
+        }
+      }
+    }
+
     if (hitAny) haptic("light");
   }
 
@@ -621,12 +640,185 @@
     var remaining = enemies.filter(function (item) {
       return item.alive;
     }).length;
-    if (!remaining) setHint("Все враги побеждены");
+    if (!remaining) spawnBoss();
 
     if (window.GameStore) {
       var reward = window.GameStore.registerKill();
       showCoinPop(reward);
       updateCoinHud();
+    }
+  }
+
+  function spawnBoss() {
+    if (boss || !scene) return;
+
+    var group = new THREE.Group();
+    var bodyMaterial = new THREE.MeshStandardMaterial({
+      color: 0x8b1226,
+      emissive: 0x2a0008,
+      emissiveIntensity: 0.85,
+      roughness: 0.6
+    });
+    var headMaterial = new THREE.MeshStandardMaterial({
+      color: 0x6e0f1e,
+      emissive: 0x1f0005,
+      emissiveIntensity: 0.7,
+      roughness: 0.65
+    });
+    var goldMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffc94a,
+      emissive: 0x6a3b00,
+      emissiveIntensity: 0.5,
+      metalness: 0.8,
+      roughness: 0.3
+    });
+    var eyeMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff3b3b,
+      emissive: 0xff1a1a,
+      emissiveIntensity: 2.2
+    });
+
+    var body = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.05, 2.4, 12), bodyMaterial);
+    body.position.y = 1.5;
+    group.add(body);
+
+    var head = new THREE.Mesh(new THREE.SphereGeometry(0.76, 16, 14), headMaterial);
+    head.position.y = 3.15;
+    group.add(head);
+
+    var hornLeft = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.95, 8), goldMaterial);
+    hornLeft.position.set(-0.52, 3.7, 0);
+    hornLeft.rotation.z = 0.55;
+    group.add(hornLeft);
+    var hornRight = hornLeft.clone();
+    hornRight.position.x = 0.52;
+    hornRight.rotation.z = -0.55;
+    group.add(hornRight);
+
+    var eyeLeft = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), eyeMaterial);
+    eyeLeft.position.set(-0.26, 3.24, 0.63);
+    group.add(eyeLeft);
+    var eyeRight = eyeLeft.clone();
+    eyeRight.position.x = 0.26;
+    group.add(eyeRight);
+
+    for (var i = 0; i < 5; i += 1) {
+      var spike = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.4, 6), goldMaterial);
+      var spikeAngle = (i / 5) * Math.PI * 2;
+      spike.position.set(Math.cos(spikeAngle) * 0.5, 3.82, Math.sin(spikeAngle) * 0.5);
+      group.add(spike);
+    }
+
+    var aura = new THREE.Mesh(
+      new THREE.RingGeometry(1.35, 1.6, 36),
+      new THREE.MeshBasicMaterial({
+        color: 0xff2a44,
+        transparent: true,
+        opacity: 0.55,
+        side: THREE.DoubleSide
+      })
+    );
+    aura.rotation.x = -Math.PI / 2;
+    aura.position.y = 0.05;
+    group.add(aura);
+
+    var forwardX = -Math.sin(player.yaw);
+    var forwardZ = -Math.cos(player.yaw);
+    var spawnX = clamp(player.pos.x + forwardX * 18, -55, 55);
+    var spawnZ = clamp(player.pos.z + forwardZ * 18, -55, 55);
+
+    group.position.set(spawnX, 0, spawnZ);
+    scene.add(group);
+
+    boss = {
+      group: group,
+      bodyMaterial: bodyMaterial,
+      headMaterial: headMaterial,
+      aura: aura,
+      hp: BOSS_MAX_HP,
+      maxHp: BOSS_MAX_HP,
+      alive: true,
+      phase: 0
+    };
+
+    updateBossHealth();
+    if (bossBar) bossBar.hidden = false;
+    setHint("Главный босс! 1000 HP · атака 10");
+    haptic("heavy");
+  }
+
+  function updateBossHealth() {
+    if (!boss) return;
+    var hp = Math.max(0, Math.ceil(boss.hp));
+    if (bossFill) bossFill.style.width = clamp((hp / boss.maxHp) * 100, 0, 100) + "%";
+    if (bossHpValue) bossHpValue.textContent = hp + " / " + boss.maxHp;
+  }
+
+  function damageBoss(amount) {
+    if (!boss || !boss.alive) return;
+    boss.hp -= amount;
+    boss.bodyMaterial.emissiveIntensity = 2.6;
+    boss.bodyMaterial.emissive.setHex(0xfff1c4);
+    boss.headMaterial.emissiveIntensity = 2;
+    updateBossHealth();
+    if (boss.hp <= 0) killBoss();
+  }
+
+  function killBoss() {
+    if (!boss || !boss.alive) return;
+
+    boss.alive = false;
+    boss.group.visible = false;
+    spawnRing(boss.group.position);
+
+    if (window.GameStore) {
+      window.GameStore.registerKill();
+      window.GameStore.addCoins(900);
+      showCoinPop(1000);
+      updateCoinHud();
+    }
+
+    setHint("Босс побеждён!");
+    haptic("heavy");
+
+    window.setTimeout(function () {
+      if (bossBar && boss && !boss.alive) bossBar.hidden = true;
+    }, 2500);
+  }
+
+  function updateBoss(dt) {
+    if (!boss || !boss.alive) return;
+
+    boss.group.position.y = Math.sin(state.time * 2.2 + boss.phase) * 0.09;
+
+    var dx = player.pos.x - boss.group.position.x;
+    var dz = player.pos.z - boss.group.position.z;
+    var distance = Math.sqrt(dx * dx + dz * dz);
+
+    boss.group.rotation.y = Math.atan2(dx, dz);
+
+    if (distance > 2.6) {
+      var speed = 1.7 * dt;
+      boss.group.position.x += (dx / distance) * speed;
+      boss.group.position.z += (dz / distance) * speed;
+    }
+
+    if (boss.bodyMaterial.emissiveIntensity > 0.85) {
+      boss.bodyMaterial.emissiveIntensity -= dt * 5;
+      boss.headMaterial.emissiveIntensity -= dt * 4;
+    }
+    if (boss.bodyMaterial.emissiveIntensity <= 0.85) {
+      boss.bodyMaterial.emissiveIntensity = 0.85;
+      boss.bodyMaterial.emissive.setHex(0x2a0008);
+      boss.headMaterial.emissiveIntensity = 0.7;
+    }
+
+    if (boss.aura) {
+      boss.aura.material.opacity = 0.4 + Math.sin(state.time * 4) * 0.15;
+    }
+
+    if (distance < 3.1 && player.pos.y < 3) {
+      damagePlayer(10);
     }
   }
 
@@ -679,6 +871,14 @@
       var dy = y - (enemy.group.position.y + 0.9);
       if (dx * dx + dz * dz < 0.36 && Math.abs(dy) < 1) return enemy;
     }
+
+    if (boss && boss.alive) {
+      var bossDx = x - boss.group.position.x;
+      var bossDz = z - boss.group.position.z;
+      var bossDy = y - (boss.group.position.y + 1.9);
+      if (bossDx * bossDx + bossDz * bossDz < 2.1 && Math.abs(bossDy) < 2.2) return boss;
+    }
+
     return null;
   }
 
@@ -801,6 +1001,8 @@
       }
     });
 
+    updateBoss(dt);
+
     for (var a = arrows.length - 1; a >= 0; a -= 1) {
       var arrow = arrows[a];
       arrow.life -= dt;
@@ -817,7 +1019,11 @@
       );
 
       if (hit) {
-        damageEnemy(hit, 50);
+        if (hit === boss) {
+          damageBoss(50);
+        } else {
+          damageEnemy(hit, 50);
+        }
         removeArrow(a);
         continue;
       }
