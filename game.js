@@ -52,7 +52,6 @@
   var weaponBase = null;
   var swordGroup = null;
   var bowGroup = null;
-  var weaponBladeMaterial = null;
   var weaponBowMaterial = null;
   var weaponStringMaterial = null;
   var enemies = [];
@@ -311,13 +310,20 @@
     bowGroup = new THREE.Group();
 
     var bladeMaterial = new THREE.MeshStandardMaterial({
-      color: 0xbdf6ff,
-      emissive: 0x2fd9ff,
-      emissiveIntensity: 0.9,
-      metalness: 0.5,
-      roughness: 0.25
+      color: 0xffd166,
+      emissive: 0xffb000,
+      emissiveIntensity: 1.1,
+      metalness: 0.85,
+      roughness: 0.22
     });
     var gripMaterial = new THREE.MeshStandardMaterial({ color: 0x243447, roughness: 0.8 });
+    var goldMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffc94a,
+      emissive: 0x6a3b00,
+      emissiveIntensity: 0.45,
+      metalness: 0.8,
+      roughness: 0.3
+    });
 
     var blade = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.78, 0.05), bladeMaterial);
     blade.position.y = 0.52;
@@ -328,7 +334,7 @@
     tip.rotation.y = Math.PI / 4;
     swordGroup.add(tip);
 
-    var guard = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.05, 0.08), gripMaterial);
+    var guard = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.05, 0.08), goldMaterial);
     guard.position.y = 0.13;
     swordGroup.add(guard);
 
@@ -339,7 +345,6 @@
     var woodMaterial = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.85 });
     var stringMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.65 });
 
-    weaponBladeMaterial = bladeMaterial;
     weaponBowMaterial = woodMaterial;
     weaponStringMaterial = stringMaterial;
 
@@ -646,10 +651,6 @@
     if (window.GameStore) {
       var skinId = snapshot ? snapshot.skin : window.GameStore.get().skin;
       var skin = window.GameStore.getSkin(skinId);
-      if (weaponBladeMaterial) {
-        weaponBladeMaterial.color.setHex(skin.accent);
-        weaponBladeMaterial.emissive.setHex(skin.primary);
-      }
       if (weaponBowMaterial) weaponBowMaterial.color.setHex(skin.primary);
       if (weaponStringMaterial) weaponStringMaterial.color.setHex(skin.accent);
       if (stage) stage.style.setProperty("--skin-accent", skin.css[0]);
