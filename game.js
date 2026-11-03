@@ -641,6 +641,7 @@
       return item.alive;
     }).length;
     if (!remaining) spawnBoss();
+    else setHint("Врагов осталось: " + remaining);
 
     if (window.GameStore) {
       var reward = window.GameStore.registerKill();
@@ -724,8 +725,8 @@
 
     var forwardX = -Math.sin(player.yaw);
     var forwardZ = -Math.cos(player.yaw);
-    var spawnX = clamp(player.pos.x + forwardX * 18, -55, 55);
-    var spawnZ = clamp(player.pos.z + forwardZ * 18, -55, 55);
+    var spawnX = clamp(player.pos.x + forwardX * 14, -55, 55);
+    var spawnZ = clamp(player.pos.z + forwardZ * 14, -55, 55);
 
     group.position.set(spawnX, 0, spawnZ);
     scene.add(group);
@@ -933,6 +934,13 @@
   function update(dt) {
     state.time += dt;
     if (state.damageCd > 0) state.damageCd -= dt;
+
+    if (!boss) {
+      var anyEnemyAlive = enemies.some(function (item) {
+        return item.alive;
+      });
+      if (!anyEnemyAlive) spawnBoss();
+    }
 
     if (state.attackT > 0) state.attackT = Math.max(0, state.attackT - dt);
 
