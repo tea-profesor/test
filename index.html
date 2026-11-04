@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#05070f">
   <title>Mini Arcade</title>
-  <link rel="stylesheet" href="styles.css?v=9">
+  <link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
   <svg class="sprite" aria-hidden="true">
@@ -79,6 +79,17 @@
       <circle cx="18" cy="18" r="2.2"/>
       <path d="m8 11.1 7.9-4.1M8 12.9l7.9 4.1"/>
     </symbol>
+    <symbol id="i-music" viewBox="0 0 24 24">
+      <path d="M9 18V5l10-2v13"/>
+      <circle cx="6.5" cy="18" r="2.5"/>
+      <circle cx="16.5" cy="16" r="2.5"/>
+    </symbol>
+    <symbol id="i-music-off" viewBox="0 0 24 24">
+      <path d="M9 18V5l10-2v13"/>
+      <circle cx="6.5" cy="18" r="2.5"/>
+      <circle cx="16.5" cy="16" r="2.5"/>
+      <path d="m3 3 18 18"/>
+    </symbol>
   </svg>
 
   <div id="app">
@@ -137,8 +148,12 @@
         <span class="dot"></span>
         <span id="platformLabel">Mini App</span>
         <span class="sep">/</span>
-        <span>v0.9 · враги с мечами</span>
+        <span>v1.0 · музыка</span>
       </footer>
+
+      <button class="menu-music" data-music-toggle aria-label="Включить или выключить музыку" aria-pressed="true">
+        <svg><use href="#i-music"/></svg>
+      </button>
     </section>
 
     <section class="screen screen--game" data-screen="play">
@@ -170,6 +185,9 @@
         <button class="game-net" id="netBtn" aria-label="Сетевая игра">
           <svg><use href="#i-network"/></svg>
           <span id="netLabel">Сеть</span>
+        </button>
+        <button class="game-music" data-music-toggle aria-label="Включить или выключить музыку" aria-pressed="true">
+          <svg><use href="#i-music"/></svg>
         </button>
         <div class="crosshair" aria-hidden="true"></div>
         <div class="game-hint" id="gameHint">Джойстик — движение · свайп — обзор</div>
@@ -323,10 +341,11 @@
   </div>
 
   <script src="telegram-web-app.js"></script>
-  <script src="store.js?v=9"></script>
+  <script src="store.js?v=10"></script>
   <script src="three.min.js"></script>
-  <script src="mqtt.min.js?v=9"></script>
-  <script src="game.js?v=9"></script>
-  <script src="app.js?v=9"></script>
+  <script src="mqtt.min.js?v=10"></script>
+  <script src="game.js?v=10"></script>
+  <script src="music.js?v=10"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
