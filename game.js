@@ -264,6 +264,41 @@
     return pivot;
   }
 
+  function makeEnemySword(parent) {
+    var sword = new THREE.Group();
+    var bladeMaterial = new THREE.MeshStandardMaterial({
+      color: 0xcfd8df,
+      emissive: 0x2e4a5a,
+      emissiveIntensity: 0.5,
+      metalness: 0.8,
+      roughness: 0.25
+    });
+    var guardMaterial = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.7 });
+    var gripMaterial = new THREE.MeshStandardMaterial({ color: 0x1c1210, roughness: 0.9 });
+
+    var blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.5, 0.028), bladeMaterial);
+    blade.position.y = -0.3;
+    sword.add(blade);
+
+    var tip = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.1, 4), bladeMaterial);
+    tip.position.y = -0.6;
+    tip.rotation.x = Math.PI;
+    sword.add(tip);
+
+    var guard = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.035, 0.05), guardMaterial);
+    guard.position.y = -0.03;
+    sword.add(guard);
+
+    var grip = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.03, 0.14, 6), gripMaterial);
+    grip.position.y = 0.05;
+    sword.add(grip);
+
+    sword.position.set(0.04, -0.5, 0.02);
+    sword.rotation.x = -0.85;
+    parent.add(sword);
+    return sword;
+  }
+
   function addEnemies() {
     var spots = [
       [10, -8],
@@ -331,6 +366,7 @@
       var rightLeg = makeLimb(group, limbMaterial, 0.2, 0.6, 0.62, 0.1, "foot");
       var leftArm = makeLimb(group, limbMaterial, -0.44, 1.12, 0.58, 0.085, "hand");
       var rightArm = makeLimb(group, limbMaterial, 0.44, 1.12, 0.58, 0.085, "hand");
+      var sword = makeEnemySword(rightArm);
 
       var x = spot[0] + (Math.random() - 0.5) * 3;
       var z = spot[1] + (Math.random() - 0.5) * 3;
@@ -349,6 +385,8 @@
         rightLeg: rightLeg,
         leftArm: leftArm,
         rightArm: rightArm,
+        sword: sword,
+        attackSwing: 0,
         walkPhase: index * 1.3,
         speed: 0.9 + Math.random() * 0.45
       });
@@ -1173,8 +1211,16 @@
       var swing = Math.sin(enemy.walkPhase) * (moving ? 0.62 : 0.08);
       if (enemy.leftLeg) enemy.leftLeg.rotation.x = swing;
       if (enemy.rightLeg) enemy.rightLeg.rotation.x = -swing;
-      if (enemy.leftArm) enemy.leftArm.rotation.x = -swing * 0.85;
-      if (enemy.rightArm) enemy.rightArm.rotation.x = swing * 0.85;
+
+      if (enemy.attackSwing > 0) {
+        enemy.attackSwing = Math.max(0, enemy.attackSwing - dt);
+        var attackWave = Math.sin((1 - enemy.attackSwing / 0.34) * Math.PI);
+        if (enemy.rightArm) enemy.rightArm.rotation.x = -1.6 * attackWave;
+        if (enemy.leftArm) enemy.leftArm.rotation.x = 0.25 * attackWave;
+      } else {
+        if (enemy.leftArm) enemy.leftArm.rotation.x = -swing * 0.85;
+        if (enemy.rightArm) enemy.rightArm.rotation.x = swing * 0.85;
+      }
 
       if (enemy.bodyMaterial.emissiveIntensity > 0.6) {
         enemy.bodyMaterial.emissiveIntensity -= dt * 6;
@@ -1187,6 +1233,7 @@
       }
 
       if (distance < 1.34 && player.pos.y < 2.6) {
+        if (state.damageCd <= 0) enemy.attackSwing = 0.34;
         damagePlayer(12);
       }
     });
