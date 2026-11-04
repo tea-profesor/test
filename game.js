@@ -236,6 +236,34 @@
     }
   }
 
+  function makeLimb(group, material, x, y, length, radius, end) {
+    var pivot = new THREE.Group();
+    pivot.position.set(x, y, 0);
+
+    var limb = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius, radius * 0.85, length, 7),
+      material
+    );
+    limb.position.y = -length / 2;
+    pivot.add(limb);
+
+    if (end === "foot") {
+      var foot = new THREE.Mesh(
+        new THREE.BoxGeometry(radius * 2.6, radius * 1.6, radius * 3.8),
+        material
+      );
+      foot.position.set(0, -length + radius * 0.8, radius * 0.8);
+      pivot.add(foot);
+    } else if (end === "hand") {
+      var hand = new THREE.Mesh(new THREE.SphereGeometry(radius * 1.25, 8, 8), material);
+      hand.position.y = -length;
+      pivot.add(hand);
+    }
+
+    group.add(pivot);
+    return pivot;
+  }
+
   function addEnemies() {
     var spots = [
       [10, -8],
@@ -292,6 +320,18 @@
       hornRight.rotation.z = -0.4;
       group.add(hornRight);
 
+      var limbMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8f2b2b,
+        emissive: 0x220303,
+        emissiveIntensity: 0.35,
+        roughness: 0.85
+      });
+
+      var leftLeg = makeLimb(group, limbMaterial, -0.2, 0.6, 0.62, 0.1, "foot");
+      var rightLeg = makeLimb(group, limbMaterial, 0.2, 0.6, 0.62, 0.1, "foot");
+      var leftArm = makeLimb(group, limbMaterial, -0.44, 1.12, 0.58, 0.085, "hand");
+      var rightArm = makeLimb(group, limbMaterial, 0.44, 1.12, 0.58, 0.085, "hand");
+
       var x = spot[0] + (Math.random() - 0.5) * 3;
       var z = spot[1] + (Math.random() - 0.5) * 3;
       group.position.set(x, 0, z);
@@ -304,7 +344,13 @@
         hp: 100,
         alive: true,
         phase: index * 1.7,
-        baseY: 0
+        baseY: 0,
+        leftLeg: leftLeg,
+        rightLeg: rightLeg,
+        leftArm: leftArm,
+        rightArm: rightArm,
+        walkPhase: index * 1.3,
+        speed: 0.9 + Math.random() * 0.45
       });
     });
   }
@@ -804,6 +850,17 @@
     aura.position.y = 0.05;
     group.add(aura);
 
+    var limbMaterial = new THREE.MeshStandardMaterial({
+      color: 0x5e0b18,
+      emissive: 0x1f0005,
+      emissiveIntensity: 0.5,
+      roughness: 0.7
+    });
+    var leftLeg = makeLimb(group, limbMaterial, -0.42, 0.55, 0.55, 0.17, "foot");
+    var rightLeg = makeLimb(group, limbMaterial, 0.42, 0.55, 0.55, 0.17, "foot");
+    var leftArm = makeLimb(group, limbMaterial, -1.02, 2.35, 1.35, 0.17, "hand");
+    var rightArm = makeLimb(group, limbMaterial, 1.02, 2.35, 1.35, 0.17, "hand");
+
     var forwardX = -Math.sin(player.yaw);
     var forwardZ = -Math.cos(player.yaw);
     var spawnX = clamp(player.pos.x + forwardX * 14, -55, 55);
@@ -820,7 +877,12 @@
       hp: BOSS_MAX_HP,
       maxHp: BOSS_MAX_HP,
       alive: true,
-      phase: 0
+      phase: 0,
+      leftLeg: leftLeg,
+      rightLeg: rightLeg,
+      leftArm: leftArm,
+      rightArm: rightArm,
+      walkPhase: 0
     };
 
     updateBossHealth();
@@ -881,11 +943,19 @@
 
     boss.group.rotation.y = Math.atan2(dx, dz);
 
-    if (distance > 2.6) {
+    var moving = distance > 2.6;
+    if (moving) {
       var speed = 1.7 * dt;
       boss.group.position.x += (dx / distance) * speed;
       boss.group.position.z += (dz / distance) * speed;
     }
+
+    boss.walkPhase += dt * (moving ? 4.5 : 1.5);
+    var swing = Math.sin(boss.walkPhase) * (moving ? 0.5 : 0.06);
+    if (boss.leftLeg) boss.leftLeg.rotation.x = swing;
+    if (boss.rightLeg) boss.rightLeg.rotation.x = -swing;
+    if (boss.leftArm) boss.leftArm.rotation.x = -swing * 0.7;
+    if (boss.rightArm) boss.rightArm.rotation.x = swing * 0.7;
 
     if (boss.bodyMaterial.emissiveIntensity > 0.85) {
       boss.bodyMaterial.emissiveIntensity -= dt * 5;
@@ -1078,6 +1148,34 @@
       if (!enemy.alive) return;
 
       enemy.group.position.y = Math.sin(state.time * 2 + enemy.phase) * 0.06;
+
+      var toX = player.pos.x - enemy.group.position.x;
+      var toZ = player.pos.z - enemy.group.position.z;
+      var distance = Math.sqrt(toX * toX + toZ * toZ);
+      var moving = distance > 1.15;
+
+      if (moving) {
+        var step = enemy.speed * dt;
+        enemy.group.position.x = clamp(
+          enemy.group.position.x + (toX / distance) * step,
+          -62,
+          62
+        );
+        enemy.group.position.z = clamp(
+          enemy.group.position.z + (toZ / distance) * step,
+          -62,
+          62
+        );
+        enemy.group.rotation.y = Math.atan2(toX, toZ);
+      }
+
+      enemy.walkPhase += dt * (moving ? 8 : 1.6);
+      var swing = Math.sin(enemy.walkPhase) * (moving ? 0.62 : 0.08);
+      if (enemy.leftLeg) enemy.leftLeg.rotation.x = swing;
+      if (enemy.rightLeg) enemy.rightLeg.rotation.x = -swing;
+      if (enemy.leftArm) enemy.leftArm.rotation.x = -swing * 0.85;
+      if (enemy.rightArm) enemy.rightArm.rotation.x = swing * 0.85;
+
       if (enemy.bodyMaterial.emissiveIntensity > 0.6) {
         enemy.bodyMaterial.emissiveIntensity -= dt * 6;
         enemy.headMaterial.emissiveIntensity -= dt * 5;
@@ -1088,9 +1186,7 @@
         enemy.headMaterial.emissiveIntensity = 0.5;
       }
 
-      var dx = enemy.group.position.x - player.pos.x;
-      var dz = enemy.group.position.z - player.pos.z;
-      if (dx * dx + dz * dz < 1.8 && player.pos.y < 2.6) {
+      if (distance < 1.34 && player.pos.y < 2.6) {
         damagePlayer(12);
       }
     });
