@@ -202,20 +202,34 @@
     );
   }
 
+  function writeCloud() {
+    if (!cloudAvailable()) return;
+    try {
+      tg.CloudStorage.setItem(KEY, JSON.stringify(state), function () {});
+    } catch (error) {}
+  }
+
   function scheduleCloud() {
     if (!cloudAvailable() || cloudTimer) return;
     cloudTimer = setTimeout(function () {
       cloudTimer = null;
-      try {
-        tg.CloudStorage.setItem(KEY, JSON.stringify(state), function () {});
-      } catch (error) {}
-    }, 700);
+      writeCloud();
+    }, 400);
   }
 
-  function persist() {
+  function flushCloud() {
+    if (cloudTimer) {
+      clearTimeout(cloudTimer);
+      cloudTimer = null;
+    }
+    writeCloud();
+  }
+
+  function persist(immediate) {
     state.updatedAt = Date.now();
     writeLocal();
-    scheduleCloud();
+    if (immediate) writeCloud();
+    else scheduleCloud();
     emit();
   }
 
@@ -239,6 +253,14 @@
   var local = readLocal();
   if (local) state = merge(state, local);
   emit();
+
+  window.addEventListener("pagehide", flushCloud);
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) flushCloud();
+  });
+  window.addEventListener("mini:screen", function (event) {
+    if (event.detail && event.detail.name !== "play") flushCloud();
+  });
 
   if (document.readyState === "complete") {
     loadCloud();
@@ -264,12 +286,12 @@
       var value = clampInt(amount);
       if (!value) return;
       state.coins += value;
-      persist();
+      persist(true);
     },
     registerKill: function () {
       state.kills += 1;
       state.coins += KILL_REWARD;
-      persist();
+      persist(true);
       return KILL_REWARD;
     },
     buyBow: function () {
@@ -277,7 +299,7 @@
       if (state.coins < BOW_PRICE) return { ok: false, reason: "coins" };
       state.coins -= BOW_PRICE;
       state.bow = true;
-      persist();
+      persist(true);
       return { ok: true };
     },
     buySkin: function (id) {
@@ -288,13 +310,13 @@
       state.coins -= skin.price;
       state.skins.push(id);
       state.skin = id;
-      persist();
+      persist(true);
       return { ok: true };
     },
     equipSkin: function (id) {
       if (state.skins.indexOf(id) < 0) return { ok: false, reason: "locked" };
       state.skin = id;
-      persist();
+      persist(true);
       return { ok: true };
     },
     getRun: function () {
@@ -310,7 +332,7 @@
     resetRun: function () {
       if (!state.run) return false;
       state.run = null;
-      persist();
+      persist(true);
       return true;
     },
     onChange: function (listener) {

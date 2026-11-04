@@ -722,13 +722,13 @@
     if (!remaining) spawnBoss();
     else setHint("Врагов осталось: " + remaining);
 
+    saveRunState();
+
     if (window.GameStore) {
       var reward = window.GameStore.registerKill();
       showCoinPop(reward);
       updateCoinHud();
     }
-
-    saveRunState();
   }
 
   function spawnBoss() {
@@ -853,6 +853,7 @@
     boss.alive = false;
     boss.group.visible = false;
     spawnRing(boss.group.position);
+    saveRunState();
 
     if (window.GameStore) {
       window.GameStore.registerKill();
@@ -863,7 +864,6 @@
 
     setHint("Босс побеждён!");
     haptic("heavy");
-    saveRunState();
 
     window.setTimeout(function () {
       if (bossBar && boss && !boss.alive) bossBar.hidden = true;
