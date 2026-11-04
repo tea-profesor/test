@@ -69,13 +69,43 @@
     return skin.id;
   });
 
-  var state = { coins: 0, bow: false, kills: 0, skins: ["scout"], skin: "scout", updatedAt: 0 };
+  var state = { coins: 0, bow: false, kills: 0, skins: ["scout"], skin: "scout", run: null, updatedAt: 0 };
   var listeners = [];
   var cloudTimer = null;
 
   function clampInt(value) {
     var number = Math.floor(Number(value) || 0);
     return number < 0 ? 0 : number;
+  }
+
+  function cleanRun(raw) {
+    if (!raw || typeof raw !== "object") return null;
+
+    var enemies = null;
+    if (Array.isArray(raw.enemies)) {
+      enemies = raw.enemies.slice(0, 16).map(function (value) {
+        return Boolean(value);
+      });
+    }
+
+    var boss = null;
+    if (raw.boss && typeof raw.boss === "object") {
+      boss = {
+        hp: Math.min(1000, clampInt(raw.boss.hp)),
+        alive: Boolean(raw.boss.alive)
+      };
+    }
+
+    if (!enemies && !boss) return null;
+    return { enemies: enemies, boss: boss };
+  }
+
+  function cloneRun(run) {
+    if (!run) return null;
+    return {
+      enemies: run.enemies ? run.enemies.slice() : null,
+      boss: run.boss ? { hp: run.boss.hp, alive: run.boss.alive } : null
+    };
   }
 
   function cleanSkinList(raw) {
@@ -99,6 +129,7 @@
       kills: clampInt(raw.kills),
       skins: skins,
       skin: skin,
+      run: cleanRun(raw.run),
       updatedAt: clampInt(raw.updatedAt)
     };
   }
@@ -143,6 +174,7 @@
       kills: Math.max(local.kills || 0, cloud.kills || 0),
       skins: skins,
       skin: skin,
+      run: cloneRun(base.run),
       updatedAt: Math.max(local.updatedAt || 0, cloud.updatedAt || 0)
     };
   }
@@ -264,6 +296,22 @@
       state.skin = id;
       persist();
       return { ok: true };
+    },
+    getRun: function () {
+      return cloneRun(state.run);
+    },
+    saveRun: function (run) {
+      var next = cleanRun(run);
+      if (JSON.stringify(next) === JSON.stringify(state.run)) return false;
+      state.run = next;
+      persist();
+      return true;
+    },
+    resetRun: function () {
+      if (!state.run) return false;
+      state.run = null;
+      persist();
+      return true;
     },
     onChange: function (listener) {
       if (typeof listener !== "function") return function () {};

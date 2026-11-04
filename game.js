@@ -62,6 +62,7 @@
   var arrows = [];
   var boss = null;
   var BOSS_MAX_HP = 1000;
+  var runCleared = false;
 
   var tmpForward = null;
   var tmpRight = null;
@@ -321,6 +322,12 @@
       roughness: 0.22
     });
     var gripMaterial = new THREE.MeshStandardMaterial({ color: 0x243447, roughness: 0.8 });
+    var swordGripMaterial = new THREE.MeshStandardMaterial({
+      color: 0xc81e3a,
+      emissive: 0x4a0010,
+      emissiveIntensity: 0.55,
+      roughness: 0.6
+    });
     var goldMaterial = new THREE.MeshStandardMaterial({
       color: 0xffc94a,
       emissive: 0x6a3b00,
@@ -342,7 +349,7 @@
     guard.position.y = 0.13;
     swordGroup.add(guard);
 
-    var grip = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.28, 8), gripMaterial);
+    var grip = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.28, 8), swordGripMaterial);
     grip.position.y = -0.02;
     swordGroup.add(grip);
 
@@ -402,6 +409,77 @@
     camera.add(weapon);
   }
 
+  function saveRunState() {
+    if (!window.GameStore || !window.GameStore.saveRun) return;
+    window.GameStore.saveRun({
+      enemies: enemies.map(function (enemy) {
+        return enemy.alive;
+      }),
+      boss: boss ? { hp: boss.hp, alive: boss.alive } : null
+    });
+  }
+
+  function restoreRun() {
+    if (!window.GameStore || !window.GameStore.getRun) return;
+    var run = window.GameStore.getRun();
+    if (!run) return;
+
+    if (run.enemies) {
+      enemies.forEach(function (enemy, index) {
+        if (index < run.enemies.length && run.enemies[index] === false) {
+          enemy.alive = false;
+          enemy.hp = 0;
+          enemy.group.visible = false;
+        }
+      });
+    }
+
+    if (run.boss) {
+      if (run.boss.alive) {
+        spawnBoss();
+        if (boss) {
+          boss.hp = clamp(run.boss.hp, 1, BOSS_MAX_HP);
+          updateBossHealth();
+          if (bossBar) bossBar.hidden = false;
+        }
+      } else {
+        runCleared = true;
+        if (bossBar) bossBar.hidden = true;
+      }
+    }
+  }
+
+  function resetBattle() {
+    if (!state.initialized) return;
+    if (window.GameStore && window.GameStore.resetRun) window.GameStore.resetRun();
+    runCleared = false;
+
+    enemies.forEach(function (enemy) {
+      enemy.alive = true;
+      enemy.hp = 100;
+      enemy.group.visible = true;
+      var angle = Math.random() * Math.PI * 2;
+      var distance = 12 + Math.random() * 20;
+      enemy.group.position.set(Math.cos(angle) * distance, 0, Math.sin(angle) * distance);
+    });
+
+    if (boss) {
+      scene.remove(boss.group);
+      boss.group.traverse(function (child) {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+      });
+      boss = null;
+    }
+
+    if (bossBar) bossBar.hidden = true;
+    setHint("Бой начат заново");
+    haptic("medium");
+  }
+
   function initGame() {
     try {
       renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
@@ -415,6 +493,7 @@
     renderer.setClearColor(0x000000, 0);
 
     buildWorld();
+    restoreRun();
     bindControls();
     updateHealth();
     resize();
@@ -648,6 +727,8 @@
       showCoinPop(reward);
       updateCoinHud();
     }
+
+    saveRunState();
   }
 
   function spawnBoss() {
@@ -762,6 +843,7 @@
     boss.bodyMaterial.emissive.setHex(0xfff1c4);
     boss.headMaterial.emissiveIntensity = 2;
     updateBossHealth();
+    saveRunState();
     if (boss.hp <= 0) killBoss();
   }
 
@@ -781,6 +863,7 @@
 
     setHint("Босс побеждён!");
     haptic("heavy");
+    saveRunState();
 
     window.setTimeout(function () {
       if (bossBar && boss && !boss.alive) bossBar.hidden = true;
@@ -935,11 +1018,14 @@
     state.time += dt;
     if (state.damageCd > 0) state.damageCd -= dt;
 
-    if (!boss) {
+    if (!boss && !runCleared) {
       var anyEnemyAlive = enemies.some(function (item) {
         return item.alive;
       });
-      if (!anyEnemyAlive) spawnBoss();
+      if (!anyEnemyAlive) {
+        spawnBoss();
+        saveRunState();
+      }
     }
 
     if (state.attackT > 0) state.attackT = Math.max(0, state.attackT - dt);
@@ -1726,6 +1812,8 @@
   window.addEventListener("mini:lobby", function () {
     openLobby();
   });
+
+  window.addEventListener("mini:reset-run", resetBattle);
 
   window.addEventListener("pagehide", function () {
     netLeave(true);

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#05070f">
   <title>Mini Arcade</title>
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
   <svg class="sprite" aria-hidden="true">
@@ -137,7 +137,7 @@
         <span class="dot"></span>
         <span id="platformLabel">Mini App</span>
         <span class="sep">/</span>
-        <span>v0.5 · босс</span>
+        <span>v0.6 · автосохранение</span>
       </footer>
     </section>
 
@@ -267,6 +267,8 @@
         </article>
         <div class="list-head">Скины</div>
         <div class="skins-grid" id="skinsGrid"></div>
+        <button class="action-btn action-btn--ghost" id="resetRunBtn">Начать бой заново</button>
+        <p class="shop-note">Вернёт врагов и босса. Монеты, лук и скины останутся.</p>
       </div>
     </section>
 
@@ -321,10 +323,10 @@
   </div>
 
   <script src="telegram-web-app.js"></script>
-  <script src="store.js?v=5"></script>
+  <script src="store.js?v=6"></script>
   <script src="three.min.js"></script>
-  <script src="mqtt.min.js?v=5"></script>
-  <script src="game.js?v=5"></script>
-  <script src="app.js?v=5"></script>
+  <script src="mqtt.min.js?v=6"></script>
+  <script src="game.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

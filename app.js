@@ -357,6 +357,32 @@
       });
     }
 
+    var resetBtn = $("#resetRunBtn");
+    if (resetBtn) {
+      resetBtn.addEventListener("click", function () {
+        haptic("medium");
+        var run = window.GameStore.getRun ? window.GameStore.getRun() : null;
+        if (!run) {
+          notify("Сохранённого боя нет");
+          return;
+        }
+
+        var reset = function () {
+          window.GameStore.resetRun();
+          window.dispatchEvent(new CustomEvent("mini:reset-run"));
+          notify("Бой начнётся заново");
+        };
+
+        if (tg && tg.showConfirm) {
+          tg.showConfirm("Начать бой заново? Враги и босс вернутся.", function (confirmed) {
+            if (confirmed) reset();
+          });
+        } else if (window.confirm("Начать бой заново?")) {
+          reset();
+        }
+      });
+    }
+
     window.GameStore.onChange(updateShop);
   }
 
