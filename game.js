@@ -80,6 +80,13 @@
     } catch (error) {}
   }
 
+  function failGame(error, prefix) {
+    state.running = false;
+    if (stage) stage.classList.add("is-error");
+    var message = error && error.message ? error.message : String(error || "Неизвестная ошибка");
+    if (window.MiniFatal) window.MiniFatal((prefix || "Ошибка игры") + ": " + message);
+  }
+
   function setHint(text) {
     if (!hint) return;
     hint.textContent = text;
@@ -568,21 +575,26 @@
     try {
       renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
     } catch (error) {
-      stage.classList.add("is-error");
+      failGame(error, "3D не поддерживается");
       return false;
     }
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.setClearColor(0x000000, 0);
+    try {
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.setClearColor(0x000000, 0);
 
-    buildWorld();
-    restoreRun();
-    bindControls();
-    updateHealth();
-    resize();
-    state.initialized = true;
-    return true;
+      buildWorld();
+      restoreRun();
+      bindControls();
+      updateHealth();
+      resize();
+      state.initialized = true;
+      return true;
+    } catch (error) {
+      failGame(error, "Не удалось создать бой");
+      return false;
+    }
   }
 
   function resize() {
@@ -1298,26 +1310,34 @@
 
   function loop(now) {
     if (!state.running) return;
-    var dt = Math.min((now - state.last) / 1000, 0.05);
-    state.last = now;
-    if (!(lobby && !lobby.hidden)) update(dt);
-    updateNetwork(dt);
-    renderer.render(scene, camera);
-    state.raf = window.requestAnimationFrame(loop);
+    try {
+      var dt = Math.min((now - state.last) / 1000, 0.05);
+      state.last = now;
+      if (!(lobby && !lobby.hidden)) update(dt);
+      updateNetwork(dt);
+      renderer.render(scene, camera);
+      state.raf = window.requestAnimationFrame(loop);
+    } catch (error) {
+      failGame(error, "Ошибка боя");
+    }
   }
 
   function start() {
-    if (!state.initialized && !initGame()) return;
-    if (state.running) return;
-    state.running = true;
-    state.last = window.performance.now();
-    resize();
-    updateHealth();
-    applyLoadout();
-    updateCoinHud();
-    setHint(state.bowEquipped ? "Лук · стрелы бесконечны · свайп — обзор" : "Джойстик — движение · свайп — обзор");
-    renderer.render(scene, camera);
-    state.raf = window.requestAnimationFrame(loop);
+    try {
+      if (!state.initialized && !initGame()) return;
+      if (state.running) return;
+      state.running = true;
+      state.last = window.performance.now();
+      resize();
+      updateHealth();
+      applyLoadout();
+      updateCoinHud();
+      setHint(state.bowEquipped ? "Лук · стрелы бесконечны · свайп — обзор" : "Джойстик — движение · свайп — обзор");
+      renderer.render(scene, camera);
+      state.raf = window.requestAnimationFrame(loop);
+    } catch (error) {
+      failGame(error, "Ошибка запуска");
+    }
   }
 
   function stop() {

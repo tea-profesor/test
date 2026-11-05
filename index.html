@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#05070f">
   <title>Mini Arcade</title>
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
   <svg class="sprite" aria-hidden="true">
@@ -148,7 +148,7 @@
         <span class="dot"></span>
         <span id="platformLabel">Mini App</span>
         <span class="sep">/</span>
-        <span>v1.0 · музыка</span>
+        <span>v1.1 · стабильный запуск</span>
       </footer>
 
       <button class="menu-music" data-music-toggle aria-label="Включить или выключить музыку" aria-pressed="true">
@@ -337,15 +337,29 @@
       </div>
     </section>
 
+    <div class="fatal" id="fatal" hidden>
+      <div class="fatal-card">
+        <div class="fatal-head">
+          <b>Игра не запустилась</b>
+          <span>Можно перезапустить или сбросить бой</span>
+        </div>
+        <p class="fatal-text" id="fatalText">Неизвестная ошибка</p>
+        <div class="fatal-actions">
+          <button id="fatalReset">Сбросить бой</button>
+          <button id="fatalReload">Перезапустить</button>
+        </div>
+      </div>
+    </div>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
 
   <script src="telegram-web-app.js"></script>
-  <script src="store.js?v=10"></script>
+  <script src="store.js?v=11"></script>
   <script src="three.min.js"></script>
-  <script src="mqtt.min.js?v=10"></script>
-  <script src="game.js?v=10"></script>
-  <script src="music.js?v=10"></script>
-  <script src="app.js?v=10"></script>
+  <script src="mqtt.min.js?v=11"></script>
+  <script src="game.js?v=11"></script>
+  <script src="app.js?v=11"></script>
+  <script src="music.js?v=11"></script>
 </body>
 </html>

@@ -38,6 +38,46 @@
     }, 2200);
   }
 
+  function showFatal(message) {
+    var box = $("#fatal");
+    var text = $("#fatalText");
+    if (!box || !text) return;
+    text.textContent = message || "Неизвестная ошибка";
+    box.hidden = false;
+  }
+
+  window.MiniFatal = showFatal;
+
+  window.addEventListener("error", function (event) {
+    if (event && event.message) showFatal("Ошибка: " + event.message);
+  });
+
+  window.addEventListener("unhandledrejection", function (event) {
+    var reason = event && event.reason;
+    var message = reason && reason.message ? reason.message : String(reason || "Promise rejection");
+    showFatal("Ошибка: " + message);
+  });
+
+  function bindFatalActions() {
+    var reset = $("#fatalReset");
+    var reload = $("#fatalReload");
+
+    if (reset) {
+      reset.addEventListener("click", function () {
+        try {
+          if (window.GameStore && window.GameStore.resetRun) window.GameStore.resetRun();
+        } catch (error) {}
+        window.location.reload();
+      });
+    }
+
+    if (reload) {
+      reload.addEventListener("click", function () {
+        window.location.reload();
+      });
+    }
+  }
+
   function showScreen(name, options) {
     var target = screens[name];
     if (!target || name === currentScreen) return;
@@ -411,6 +451,7 @@
     });
 
     bindTelegram();
+    bindFatalActions();
     bindNavigation();
     setupChat();
     setupShop();

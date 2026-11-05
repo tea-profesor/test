@@ -1745,8 +1745,7 @@ svg {
   background: rgba(6, 16, 11, 0.58);
   color: #fff;
   pointer-events: auto;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  touch-action: manipulation;
   transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
 }
 
@@ -1791,4 +1790,82 @@ svg {
 .menu-music:active,
 .game-music:active {
   transform: scale(0.94);
+}
+
+
+.fatal {
+  position: fixed;
+  top: calc(var(--safe-top) + 8px);
+  left: 8px;
+  right: 8px;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.fatal[hidden] {
+  display: none;
+}
+
+.fatal-card {
+  width: 100%;
+  max-width: 430px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 99, 120, 0.5);
+  border-radius: 14px;
+  background: rgba(42, 10, 18, 0.96);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+}
+
+.fatal-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.fatal-head b {
+  font-size: 13px;
+  color: #ffd7dd;
+}
+
+.fatal-head span {
+  font-size: 11px;
+  color: #d99aa5;
+}
+
+.fatal-text {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #ffb6c1;
+  overflow-wrap: anywhere;
+}
+
+.fatal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.fatal-actions button {
+  flex: 1;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.fatal-actions button:first-child {
+  border-color: rgba(255, 99, 120, 0.45);
+  color: #ffc2cb;
+}
+
+.fatal-actions button:active {
+  transform: scale(0.97);
 }

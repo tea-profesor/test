@@ -46,7 +46,7 @@
       return false;
     }
     master = ctx.createGain();
-    master.gain.value = 0.16;
+    master.gain.value = 0.14;
     master.connect(ctx.destination);
     return true;
   }
@@ -129,21 +129,24 @@
   }
 
   function scheduler() {
-    if (!ctx || !enabled) return;
-    while (nextTime < ctx.currentTime + 0.2) {
-      playStep(step, nextTime);
-      step = (step + 1) % LOOP;
-      nextTime += STEP;
+    if (!ctx || !enabled || !started) return;
+    if (ctx.state !== "running") return;
+    try {
+      while (nextTime < ctx.currentTime + 0.2) {
+        playStep(step, nextTime);
+        step = (step + 1) % LOOP;
+        nextTime += STEP;
+      }
+    } catch (error) {
+      stop();
     }
   }
 
   function start() {
     if (!enabled || !ensureContext()) return;
-    if (ctx.state === "suspended") {
-      try {
-        ctx.resume();
-      } catch (error) {}
-    }
+    try {
+      if (ctx.state === "suspended") ctx.resume();
+    } catch (error) {}
     if (started) return;
     started = true;
     step = 0;
@@ -199,7 +202,13 @@
         var target = event.target;
         if (target && target.closest && target.closest("[data-music-toggle]")) return;
         document.removeEventListener("pointerdown", unlock, true);
-        if (enabled) start();
+        if (!enabled || !ensureContext()) return;
+        try {
+          if (ctx.state === "suspended") ctx.resume();
+        } catch (error) {}
+        window.setTimeout(function () {
+          if (enabled) start();
+        }, 1000);
       },
       true
     );
